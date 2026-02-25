@@ -50,7 +50,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
 
     return (
       <div className="flex items-end rounded-xl border border-discord-active/70 bg-discord-input/90 px-3 py-2 shadow-inner">
-        <button className="mb-0.5 mr-2 shrink-0 cursor-pointer select-none rounded-lg p-1 text-discord-channel transition-colors hover:bg-discord-hover hover:text-discord-brand">
+        <button className="mr-2 shrink-0 cursor-pointer select-none rounded-lg p-1 text-discord-channel transition-colors hover:bg-discord-hover hover:text-discord-brand">
           <IconCirclePlus size={22} stroke={2} />
         </button>
         <textarea

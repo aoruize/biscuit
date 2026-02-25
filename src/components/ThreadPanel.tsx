@@ -1,8 +1,8 @@
 import { useRef, useEffect } from 'react';
 import { IconMessageCircle2, IconX } from '@tabler/icons-react';
-import type { Thread, Message, User } from '../module_bindings/types';
+import type { Thread, Message, User, Reaction } from '../module_bindings/types';
 import { MessageBubble } from './MessageBubble';
-import { MessageInput } from './MessageInput';
+import { MessageInput, type MessageInputHandle } from './MessageInput';
 
 interface ThreadPanelProps {
   thread: Thread;
@@ -10,21 +10,29 @@ interface ThreadPanelProps {
   messages: readonly Message[];
   getUserForMessage: (msg: Message) => User | undefined;
   getUserDisplayName: (user: User) => string;
+  getReactionsForMessage: (msgId: bigint) => Reaction[];
   isOwnMessage: (msg: Message) => boolean;
+  myIdentityHex: string | null;
   typingUsers: readonly User[];
   onSendReply: (text: string) => void;
   onEditMessage: (id: bigint, text: string) => void;
   onDeleteMessage: (id: bigint) => void;
+  onToggleReaction: (messageId: bigint, emoji: string) => void;
   onClose: () => void;
   onTyping: () => void;
 }
 
 export function ThreadPanel(props: ThreadPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const replyInputRef = useRef<MessageInputHandle>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [props.messages.length]);
+
+  useEffect(() => {
+    replyInputRef.current?.focus();
+  }, [props.thread.id]);
 
   return (
     <div className="ml-3 flex h-full w-[420px] shrink-0 flex-col rounded-3xl border border-discord-active/60 bg-discord-chat/95">
@@ -52,12 +60,15 @@ export function ThreadPanel(props: ThreadPanelProps) {
               user={props.getUserForMessage(props.parentMessage)}
               getUserDisplayName={props.getUserDisplayName}
               thread={undefined}
+              reactions={props.getReactionsForMessage(props.parentMessage.id)}
               isOwn={props.isOwnMessage(props.parentMessage)}
+              myIdentityHex={props.myIdentityHex}
               showHeader
               onEdit={(text) => props.onEditMessage(props.parentMessage!.id, text)}
               onDelete={() => props.onDeleteMessage(props.parentMessage!.id)}
               onCreateThread={() => {}}
               onOpenThread={() => {}}
+              onToggleReaction={(emoji) => props.onToggleReaction(props.parentMessage!.id, emoji)}
             />
           </div>
         )}
@@ -79,12 +90,15 @@ export function ThreadPanel(props: ThreadPanelProps) {
               user={props.getUserForMessage(msg)}
               getUserDisplayName={props.getUserDisplayName}
               thread={undefined}
+              reactions={props.getReactionsForMessage(msg.id)}
               isOwn={props.isOwnMessage(msg)}
+              myIdentityHex={props.myIdentityHex}
               showHeader={showHeader}
               onEdit={(text) => props.onEditMessage(msg.id, text)}
               onDelete={() => props.onDeleteMessage(msg.id)}
               onCreateThread={() => {}}
               onOpenThread={() => {}}
+              onToggleReaction={(emoji) => props.onToggleReaction(msg.id, emoji)}
             />
           );
         })}
@@ -93,6 +107,7 @@ export function ThreadPanel(props: ThreadPanelProps) {
 
       <div className="px-5 pb-5">
         <MessageInput
+          ref={replyInputRef}
           placeholder={`Reply to thread...`}
           onSend={props.onSendReply}
           onTyping={props.onTyping}

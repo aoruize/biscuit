@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { tables, reducers } from '../module_bindings';
 import { useSpacetimeDB, useTable, useReducer } from 'spacetimedb/react';
-import type { Thread, Message, User } from '../module_bindings/types';
+import type { Thread, Message, User, Reaction } from '../module_bindings/types';
 
 export function useDiscord() {
   const { identity, isActive: connected } = useSpacetimeDB();
@@ -11,6 +11,7 @@ export function useDiscord() {
   const [threads] = useTable(tables.thread);
   const [users] = useTable(tables.user);
   const [typingIndicators] = useTable(tables.typing_indicator);
+  const [reactions] = useTable(tables.reaction);
 
   const setName = useReducer(reducers.setName);
   const createChannel = useReducer(reducers.createChannel);
@@ -23,6 +24,7 @@ export function useDiscord() {
   const sendThreadReply = useReducer(reducers.sendThreadReply);
   const setTyping = useReducer(reducers.setTyping);
   const clearTyping = useReducer(reducers.clearTyping);
+  const toggleReaction = useReducer(reducers.toggleReaction);
 
   const [selectedChannelId, setSelectedChannelId] = useState<bigint | null>(null);
   const [selectedThreadId, setSelectedThreadId] = useState<bigint | null>(null);
@@ -83,6 +85,10 @@ export function useDiscord() {
     return threads.find(t => t.parentMessageId === msgId);
   }
 
+  function getReactionsForMessage(msgId: bigint): Reaction[] {
+    return reactions.filter(r => r.messageId === msgId);
+  }
+
   function isOwnMessage(msg: Message): boolean {
     if (!identity) return false;
     return msg.sender.toHexString() === identity.toHexString();
@@ -125,10 +131,12 @@ export function useDiscord() {
     sendThreadReply,
     handleSendTyping,
     clearTyping,
+    toggleReaction,
     getChannelTypingUsers,
     getUserDisplayName,
     getUserForMessage,
     getThreadForMessage,
+    getReactionsForMessage,
     isOwnMessage,
   };
 }

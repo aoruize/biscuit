@@ -1,11 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import clsx from 'clsx';
 import {
   IconMessageCirclePlus,
+  IconMoodSmile,
   IconPencil,
   IconTrash,
 } from '@tabler/icons-react';
-import type { Message, User, Thread } from '../module_bindings/types';
+import type { Message, User, Thread, Reaction } from '../module_bindings/types';
+import { openEmojiPicker } from './emojiPicker/store';
+
+interface ReactionGroup {
+  emoji: string;
+  count: number;
+  reacted: boolean;
+}
 
 interface MessageBubbleProps {
   message: Message;
@@ -14,20 +22,62 @@ interface MessageBubbleProps {
   thread: Thread | undefined;
   isOwn: boolean;
   showHeader: boolean;
+  reactions: readonly Reaction[];
+  myIdentityHex: string | null;
   onEdit: (text: string) => void;
   onDelete: () => void;
   onCreateThread: () => void;
   onOpenThread: (threadId: bigint) => void;
+  onToggleReaction: (emoji: string) => void;
 }
 
 export function MessageBubble(props: MessageBubbleProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(props.message.text);
   const [showActions, setShowActions] = useState(false);
+  const editContainerRef = useRef<HTMLDivElement>(null);
+  const emojiButtonRef = useRef<HTMLButtonElement>(null);
+
+  const callbacksRef = useRef(props);
+  callbacksRef.current = props;
+
+  useEffect(() => {
+    if (isEditing) {
+      requestAnimationFrame(() => {
+        editContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      });
+    }
+  }, [isEditing]);
+
+  useEffect(() => {
+    function handleAction(e: Event) {
+      const detail = (e as CustomEvent).detail;
+      if (detail.messageId !== callbacksRef.current.message.id.toString()) return;
+      if (detail.action === 'edit') {
+        setIsEditing(true);
+        setEditText(callbacksRef.current.message.text);
+      } else if (detail.action === 'delete') {
+        callbacksRef.current.onDelete();
+      } else if (detail.action === 'reply') {
+        const p = callbacksRef.current;
+        if (p.thread) {
+          p.onOpenThread(p.thread.id);
+        } else {
+          p.onCreateThread();
+        }
+      } else if (detail.action === 'react') {
+        callbacksRef.current.onToggleReaction(detail.emoji);
+      }
+    }
+    document.addEventListener('context-menu-action', handleAction);
+    return () => document.removeEventListener('context-menu-action', handleAction);
+  }, []);
 
   const displayName = props.user ? props.getUserDisplayName(props.user) : 'Unknown';
   const avatarColor = props.user?.avatarColor ?? '#5865f2';
   const sentDate = props.message.sent.toDate();
+
+  const reactionGroups = groupReactions(props.reactions, props.myIdentityHex);
 
   function handleEditSubmit(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -41,6 +91,12 @@ export function MessageBubble(props: MessageBubbleProps) {
       setIsEditing(false);
       setEditText(props.message.text);
     }
+  }
+
+  function handleEmojiButtonClick() {
+    const rect = emojiButtonRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    openEmojiPicker(props.message.id.toString(), { x: rect.left, y: rect.bottom + 4 });
   }
 
   function formatTime(date: Date): string {
@@ -74,9 +130,11 @@ export function MessageBubble(props: MessageBubbleProps) {
     return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
   }
 
-  const threadCreatorUser = props.thread
-    ? props.user
-    : undefined;
+  const contextPayload = JSON.stringify({
+    messageId: props.message.id.toString(),
+    hasThread: Boolean(props.thread),
+    isOwn: props.isOwn,
+  });
 
   return (
     <div
@@ -87,6 +145,8 @@ export function MessageBubble(props: MessageBubbleProps) {
       )}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
+      data-context-menu-target="message"
+      data-context-menu-payload={contextPayload}
     >
       {props.showHeader ? (
         <div
@@ -114,7 +174,7 @@ export function MessageBubble(props: MessageBubbleProps) {
         )}
 
         {isEditing ? (
-          <div className="mt-1 rounded-xl border border-discord-active/70 bg-discord-input p-2.5">
+          <div ref={editContainerRef} className="mt-1 rounded-xl border border-discord-active/70 bg-discord-input p-2.5">
             <textarea
               autoFocus
               className="w-full resize-none border-none bg-transparent text-discord-text outline-none"
@@ -134,6 +194,26 @@ export function MessageBubble(props: MessageBubbleProps) {
             {props.message.edited && (
               <span className="ml-1 select-none text-[10px] text-discord-muted">(edited)</span>
             )}
+          </div>
+        )}
+
+        {reactionGroups.length > 0 && (
+          <div className="mt-1.5 flex flex-wrap gap-1">
+            {reactionGroups.map(rg => (
+              <button
+                key={rg.emoji}
+                onClick={() => props.onToggleReaction(rg.emoji)}
+                className={clsx(
+                  'flex cursor-pointer items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors',
+                  rg.reacted
+                    ? 'border-discord-brand/50 bg-discord-brand/15 text-discord-brand'
+                    : 'border-discord-active/70 bg-discord-hover/30 text-discord-muted hover:border-discord-active'
+                )}
+              >
+                <span className="text-sm">{rg.emoji}</span>
+                <span className="font-medium">{rg.count}</span>
+              </button>
+            ))}
           </div>
         )}
 
@@ -163,13 +243,23 @@ export function MessageBubble(props: MessageBubbleProps) {
 
       {showActions && !isEditing && (
         <div className="absolute -top-4 right-2 flex rounded-xl border border-discord-active/80 bg-discord-sidebar p-0.5 shadow-xl shadow-black/30">
-          {!props.thread && (
-            <ActionButton
-              title="Reply"
-              onClick={props.onCreateThread}
-              icon={<IconMessageCirclePlus size={17} stroke={2.1} />}
-            />
-          )}
+          <ActionButton
+            ref={emojiButtonRef}
+            title="Add Reaction"
+            onClick={handleEmojiButtonClick}
+            icon={<IconMoodSmile size={17} stroke={2.1} />}
+          />
+          <ActionButton
+            title={props.thread ? 'Reply to Thread' : 'Reply'}
+            onClick={() => {
+              if (props.thread) {
+                props.onOpenThread(props.thread.id);
+              } else {
+                props.onCreateThread();
+              }
+            }}
+            icon={<IconMessageCirclePlus size={17} stroke={2.1} />}
+          />
           {props.isOwn && (
             <>
               <ActionButton
@@ -191,14 +281,17 @@ export function MessageBubble(props: MessageBubbleProps) {
   );
 }
 
-function ActionButton(props: {
+import { forwardRef } from 'react';
+
+const ActionButton = forwardRef<HTMLButtonElement, {
   title: string;
   onClick: () => void;
   icon: React.ReactNode;
   danger?: boolean;
-}) {
+}>(function ActionButton(props, ref) {
   return (
     <button
+      ref={ref}
       title={props.title}
       onClick={props.onClick}
       className={clsx(
@@ -211,4 +304,19 @@ function ActionButton(props: {
       {props.icon}
     </button>
   );
+});
+
+function groupReactions(reactions: readonly Reaction[], myIdentityHex: string | null): ReactionGroup[] {
+  const map = new Map<string, { count: number; reacted: boolean }>();
+  for (const r of reactions) {
+    const existing = map.get(r.emoji);
+    const isMe = myIdentityHex !== null && r.reactor.toHexString() === myIdentityHex;
+    if (existing) {
+      existing.count++;
+      if (isMe) existing.reacted = true;
+    } else {
+      map.set(r.emoji, { count: 1, reacted: isMe });
+    }
+  }
+  return [...map.entries()].map(([emoji, data]) => ({ emoji, ...data }));
 }

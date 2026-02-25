@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { IconHash } from '@tabler/icons-react';
-import type { Channel, Message, User, Thread } from '../module_bindings/types';
+import type { Channel, Message, User, Thread, Reaction } from '../module_bindings/types';
 import { MessageBubble } from './MessageBubble';
 import { MessageInput, type MessageInputHandle } from './MessageInput';
 
@@ -10,13 +10,16 @@ interface MessageAreaProps {
   getUserForMessage: (msg: Message) => User | undefined;
   getUserDisplayName: (user: User) => string;
   getThreadForMessage: (msgId: bigint) => Thread | undefined;
+  getReactionsForMessage: (msgId: bigint) => Reaction[];
   isOwnMessage: (msg: Message) => boolean;
+  myIdentityHex: string | null;
   typingUsers: readonly User[];
   onSendMessage: (text: string) => void;
   onEditMessage: (id: bigint, text: string) => void;
   onDeleteMessage: (id: bigint) => void;
   onCreateThread: (messageId: bigint) => void;
   onOpenThread: (threadId: bigint) => void;
+  onToggleReaction: (messageId: bigint, emoji: string) => void;
   onTyping: () => void;
 }
 
@@ -107,12 +110,15 @@ export function MessageArea(props: MessageAreaProps) {
               user={props.getUserForMessage(msg)}
               getUserDisplayName={props.getUserDisplayName}
               thread={props.getThreadForMessage(msg.id)}
+              reactions={props.getReactionsForMessage(msg.id)}
               isOwn={props.isOwnMessage(msg)}
+              myIdentityHex={props.myIdentityHex}
               showHeader={showHeader}
               onEdit={(text) => props.onEditMessage(msg.id, text)}
               onDelete={() => props.onDeleteMessage(msg.id)}
               onCreateThread={() => props.onCreateThread(msg.id)}
               onOpenThread={props.onOpenThread}
+              onToggleReaction={(emoji) => props.onToggleReaction(msg.id, emoji)}
             />
           );
         })}

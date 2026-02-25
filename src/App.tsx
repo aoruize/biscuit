@@ -6,6 +6,8 @@ import { MessageArea } from './components/MessageArea';
 import { ThreadPanel } from './components/ThreadPanel';
 import { MemberList } from './components/MemberList';
 import { ProfileModal } from './components/ProfileModal';
+import { GlobalContextMenuProvider } from './components/contextMenu/GlobalContextMenu';
+import { GlobalEmojiPicker } from './components/emojiPicker/EmojiPicker';
 
 function App() {
   const discord = useDiscord();
@@ -63,6 +65,8 @@ function App() {
     }
   }
 
+  const myIdentityHex = discord.identity?.toHexString() ?? null;
+
   const parentMessage = discord.selectedThread
     ? discord.channelMessages.find(m => m.id === discord.selectedThread!.parentMessageId)
     : undefined;
@@ -79,6 +83,7 @@ function App() {
   }
 
   return (
+    <GlobalContextMenuProvider>
     <div className="h-screen w-screen overflow-hidden">
       <div className="flex h-full w-full overflow-hidden bg-discord-dark/70 shadow-2xl shadow-black/50 backdrop-blur">
         <ServerSidebar serverName="Biscuit" />
@@ -104,13 +109,16 @@ function App() {
             getUserForMessage={discord.getUserForMessage}
             getUserDisplayName={discord.getUserDisplayName}
             getThreadForMessage={discord.getThreadForMessage}
+            getReactionsForMessage={discord.getReactionsForMessage}
             isOwnMessage={discord.isOwnMessage}
+            myIdentityHex={myIdentityHex}
             typingUsers={discord.selectedChannelId !== null ? discord.getChannelTypingUsers(discord.selectedChannelId, 0n) : []}
             onSendMessage={handleSendMessage}
             onEditMessage={(id, text) => discord.editMessage({ messageId: id, text })}
             onDeleteMessage={(id) => discord.deleteMessage({ messageId: id })}
             onCreateThread={handleCreateThread}
             onOpenThread={(id) => discord.setSelectedThreadId(id)}
+            onToggleReaction={(msgId, emoji) => discord.toggleReaction({ messageId: msgId, emoji })}
             onTyping={handleChannelTyping}
           />
 
@@ -121,7 +129,9 @@ function App() {
               messages={discord.threadMessages}
               getUserForMessage={discord.getUserForMessage}
               getUserDisplayName={discord.getUserDisplayName}
+              getReactionsForMessage={discord.getReactionsForMessage}
               isOwnMessage={discord.isOwnMessage}
+              myIdentityHex={myIdentityHex}
               typingUsers={discord.selectedChannelId !== null && discord.selectedThreadId !== null
                 ? discord.getChannelTypingUsers(discord.selectedChannelId, discord.selectedThreadId)
                 : []
@@ -129,6 +139,7 @@ function App() {
               onSendReply={handleSendThreadReply}
               onEditMessage={(id, text) => discord.editMessage({ messageId: id, text })}
               onDeleteMessage={(id) => discord.deleteMessage({ messageId: id })}
+              onToggleReaction={(msgId, emoji) => discord.toggleReaction({ messageId: msgId, emoji })}
               onClose={() => discord.setSelectedThreadId(null)}
               onTyping={handleThreadTyping}
             />
@@ -153,6 +164,8 @@ function App() {
         />
       )}
     </div>
+    <GlobalEmojiPicker />
+    </GlobalContextMenuProvider>
   );
 }
 

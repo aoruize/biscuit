@@ -81,7 +81,21 @@ const typing_indicator = table(
   }
 );
 
-const spacetimedb = schema({ user, channel, message, thread, typing_indicator });
+const reaction = table(
+  {
+    name: 'reaction',
+    public: true,
+    indexes: [{ name: 'reaction_message_id', algorithm: 'btree', columns: ['messageId'] }],
+  },
+  {
+    id: t.u64().primaryKey().autoInc(),
+    messageId: t.u64(),
+    emoji: t.string(),
+    reactor: t.identity(),
+  }
+);
+
+const spacetimedb = schema({ user, channel, message, thread, typing_indicator, reaction });
 export default spacetimedb;
 
 export const set_name = spacetimedb.reducer(
@@ -279,6 +293,28 @@ export const clear_typing = spacetimedb.reducer(
   (ctx) => {
     const existing = ctx.db.typing_indicator.identity.find(ctx.sender);
     if (existing) ctx.db.typing_indicator.identity.delete(ctx.sender);
+  }
+);
+
+export const toggle_reaction = spacetimedb.reducer(
+  { messageId: t.u64(), emoji: t.string() },
+  (ctx, { messageId, emoji }) => {
+    const msg = ctx.db.message.id.find(messageId);
+    if (!msg) throw new SenderError('Message not found');
+
+    for (const r of ctx.db.reaction.reaction_message_id.filter(messageId)) {
+      if (r.emoji === emoji && r.reactor.toHexString() === ctx.sender.toHexString()) {
+        ctx.db.reaction.id.delete(r.id);
+        return;
+      }
+    }
+
+    ctx.db.reaction.insert({
+      id: 0n,
+      messageId,
+      emoji,
+      reactor: ctx.sender,
+    });
   }
 );
 
