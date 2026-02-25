@@ -92,6 +92,7 @@ function GlobalContextMenu() {
         <ContextMenuItem
           label="Add Reaction"
           icon={<IconMoodSmile size={16} stroke={2} />}
+          shortcut="R"
           onClick={() => {
             const pos = position ?? { x: 0, y: 0 };
             closeContextMenu();
@@ -101,6 +102,7 @@ function GlobalContextMenu() {
         <ContextMenuItem
           label="Reply in Thread"
           icon={<IconMessageCirclePlus size={16} stroke={2} />}
+          shortcut="T"
           onClick={() => dispatchAction('reply', messageId)}
         />
         {isOwn && (
@@ -108,11 +110,13 @@ function GlobalContextMenu() {
             <ContextMenuItem
               label="Edit Message"
               icon={<IconPencil size={16} stroke={2} />}
+              shortcut="E"
               onClick={() => dispatchAction('edit', messageId)}
             />
             <ContextMenuItem
               label="Delete Message"
               icon={<IconTrash size={16} stroke={2} />}
+              shortcut="⌫"
               onClick={() => dispatchAction('delete', messageId)}
               danger
             />
@@ -167,6 +171,7 @@ function ContextMenuItem(props: {
   icon: React.ReactNode;
   onClick: () => void;
   danger?: boolean;
+  shortcut?: string;
 }) {
   return (
     <button
@@ -179,7 +184,12 @@ function ContextMenuItem(props: {
       )}
     >
       {props.icon}
-      {props.label}
+      <span className="flex-1">{props.label}</span>
+      {props.shortcut && (
+        <kbd className="rounded bg-discord-active/60 px-1.5 py-0.5 font-mono text-[10px] text-discord-muted">
+          {props.shortcut}
+        </kbd>
+      )}
     </button>
   );
 }

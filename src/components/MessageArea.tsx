@@ -1,9 +1,10 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import clsx from 'clsx';
 import { IconHash } from '@tabler/icons-react';
 import type { Channel, Message, User, Thread, Reaction } from '../module_bindings/types';
 import { MessageBubble } from './MessageBubble';
 import { MessageInput, type MessageInputHandle } from './MessageInput';
+import { openEmojiPicker } from './emojiPicker/store';
 
 interface MessageAreaProps {
   channel: Channel | null;
@@ -35,6 +36,11 @@ export function MessageArea(props: MessageAreaProps) {
   const inputRef = useRef<MessageInputHandle>(null);
   const prevMsgCountRef = useRef(0);
   const prevChannelRef = useRef<bigint | null>(null);
+  const [selectedMessageId, setSelectedMessageId] = useState<bigint | null>(null);
+  const selectedIdRef = useRef(selectedMessageId);
+  selectedIdRef.current = selectedMessageId;
+  const propsRef = useRef(props);
+  propsRef.current = props;
 
   const scrollToBottom = useCallback(() => {
     const el = containerRef.current;
@@ -45,6 +51,7 @@ export function MessageArea(props: MessageAreaProps) {
     const channelId = props.channel?.id ?? null;
     if (channelId !== prevChannelRef.current) {
       prevChannelRef.current = channelId;
+      setSelectedMessageId(null);
       requestAnimationFrame(() => {
         scrollToBottom();
         inputRef.current?.focus();
@@ -73,6 +80,110 @@ export function MessageArea(props: MessageAreaProps) {
     );
     el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, [props.highlightedMessageId]);
+
+  useEffect(() => {
+    if (selectedMessageId !== null && !props.messages.some(m => m.id === selectedMessageId)) {
+      setSelectedMessageId(null);
+    }
+  }, [props.messages, selectedMessageId]);
+
+  useEffect(() => {
+    if (selectedMessageId === null) return;
+    const el = containerRef.current?.querySelector(
+      `[data-message-id="${selectedMessageId.toString()}"]`
+    );
+    el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, [selectedMessageId]);
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      const sid = selectedIdRef.current;
+      if (sid === null) return;
+
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
+
+      const { messages, isOwnMessage, onDeleteMessage } = propsRef.current;
+      const idx = messages.findIndex(m => m.id === sid);
+      if (idx === -1) {
+        setSelectedMessageId(null);
+        return;
+      }
+      const msg = messages[idx];
+
+      switch (e.key) {
+        case 'ArrowUp':
+          e.preventDefault();
+          if (idx > 0) setSelectedMessageId(messages[idx - 1].id);
+          break;
+        case 'ArrowDown':
+          e.preventDefault();
+          if (idx < messages.length - 1) {
+            setSelectedMessageId(messages[idx + 1].id);
+          } else {
+            setSelectedMessageId(null);
+            inputRef.current?.focus();
+          }
+          break;
+        case 'Escape':
+          e.preventDefault();
+          setSelectedMessageId(null);
+          inputRef.current?.focus();
+          break;
+        case 'Backspace':
+        case 'Delete':
+          if (isOwnMessage(msg)) {
+            e.preventDefault();
+            onDeleteMessage(msg.id);
+            if (messages.length <= 1) {
+              setSelectedMessageId(null);
+              inputRef.current?.focus();
+            } else if (idx > 0) {
+              setSelectedMessageId(messages[idx - 1].id);
+            } else {
+              setSelectedMessageId(messages[1].id);
+            }
+          }
+          break;
+        default: {
+          if (e.metaKey || e.ctrlKey || e.altKey) break;
+          const key = e.key.toLowerCase();
+          if (key === 'e' && isOwnMessage(msg)) {
+            e.preventDefault();
+            document.dispatchEvent(new CustomEvent('context-menu-action', {
+              detail: { action: 'edit', messageId: msg.id.toString() },
+            }));
+            setSelectedMessageId(null);
+          } else if (key === 'r') {
+            e.preventDefault();
+            const el = containerRef.current?.querySelector(
+              `[data-message-id="${msg.id.toString()}"]`
+            );
+            if (el) {
+              const rect = el.getBoundingClientRect();
+              openEmojiPicker(msg.id.toString(), { x: rect.right - 40, y: rect.top });
+            }
+          } else if (key === 't') {
+            e.preventDefault();
+            document.dispatchEvent(new CustomEvent('context-menu-action', {
+              detail: { action: 'reply', messageId: msg.id.toString() },
+            }));
+            setSelectedMessageId(null);
+          }
+          break;
+        }
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  function handleNavigateUp() {
+    if (props.messages.length === 0) return;
+    setSelectedMessageId(props.messages[props.messages.length - 1].id);
+    inputRef.current?.blur();
+  }
 
   if (!props.channel) {
     return (
@@ -152,6 +263,7 @@ export function MessageArea(props: MessageAreaProps) {
                   thread={props.getThreadForMessage(msg.id)}
                   reactions={props.getReactionsForMessage(msg.id)}
                   isOwn={props.isOwnMessage(msg)}
+                  isSelected={selectedMessageId === msg.id}
                   myIdentityHex={props.myIdentityHex}
                   showHeader={showHeader}
                   threadAnnotation={annotation}
@@ -177,6 +289,7 @@ export function MessageArea(props: MessageAreaProps) {
           onTyping={props.onTyping}
           onStopTyping={props.onStopTyping}
           onDraftChange={props.onDraftChange}
+          onNavigateUp={handleNavigateUp}
         />
         <TypingIndicator users={props.typingUsers} getUserDisplayName={props.getUserDisplayName} />
       </div>

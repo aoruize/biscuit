@@ -1,4 +1,4 @@
-import { useState, cloneElement } from 'react';
+import { useState, cloneElement, type ReactNode } from 'react';
 import {
   FloatingPortal,
   autoUpdate,
@@ -16,7 +16,7 @@ import {
 import { useRef } from 'react';
 
 interface TooltipProps {
-  content: string;
+  content: ReactNode;
   children: React.ReactElement<Record<string, unknown>>;
   placement?: Placement;
   delay?: number;

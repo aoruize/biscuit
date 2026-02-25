@@ -37,12 +37,14 @@ interface RichTextEditorProps {
   onStopTyping?: () => void;
   onDraftChange?: (markdown: string) => void;
   onEscape?: () => void;
+  onNavigateUp?: () => void;
   autoFocus?: boolean;
   compact?: boolean;
 }
 
 export interface RichTextEditorHandle {
   focus: () => void;
+  blur: () => void;
   getMarkdown: () => string;
   clearContent: () => void;
 }
@@ -125,9 +127,19 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
         attributes: {
           class: 'tiptap-editor outline-none',
         },
-        handleKeyDown(_view, event) {
+        handleKeyDown(view, event) {
           if (event.key === 'Escape') {
             propsRef.current.onEscape?.();
+            return true;
+          }
+          if (
+            event.key === 'ArrowUp' &&
+            !event.shiftKey && !event.metaKey && !event.ctrlKey && !event.altKey &&
+            view.state.selection.empty &&
+            view.state.selection.from <= 1 &&
+            propsRef.current.onNavigateUp
+          ) {
+            propsRef.current.onNavigateUp();
             return true;
           }
           return false;
@@ -158,6 +170,9 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
     useImperativeHandle(ref, () => ({
       focus() {
         editorRef.current?.commands.focus();
+      },
+      blur() {
+        editorRef.current?.commands.blur();
       },
       getMarkdown() {
         if (!editorRef.current) return '';

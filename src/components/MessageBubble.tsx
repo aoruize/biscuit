@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, forwardRef } from 'react';
+import { useState, useEffect, useRef, forwardRef, type ReactNode } from 'react';
 import clsx from 'clsx';
 import {
   IconMessageCirclePlus,
@@ -29,6 +29,7 @@ interface MessageBubbleProps {
   myIdentityHex: string | null;
   threadAnnotation?: React.ReactNode;
   compact?: boolean;
+  isSelected?: boolean;
   onEdit: (text: string) => void;
   onDelete: () => void;
   onCreateThread: () => void;
@@ -136,6 +137,7 @@ export function MessageBubble(props: MessageBubbleProps) {
       className={clsx(
         'group relative flex rounded-xl px-2 py-1.5',
         'transition-colors hover:bg-discord-hover/25',
+        props.isSelected && 'bg-discord-brand/8 ring-1 ring-inset ring-discord-brand/30',
         props.compact ? 'gap-2.5' : 'gap-4',
         props.showHeader ? 'mt-4' : 'mt-0'
       )}
@@ -251,15 +253,15 @@ export function MessageBubble(props: MessageBubbleProps) {
         )}
       </div>
 
-      {showActions && !isEditing && (
+      {(showActions || props.isSelected) && !isEditing && (
         <div className="absolute -top-4 right-2 flex rounded-xl border border-discord-active/80 bg-discord-sidebar p-0.5 shadow-xl shadow-black/30">
-          <Tooltip content="Add reaction...">
+          <Tooltip content={<span className="flex items-center gap-1.5">React<ShortcutBadge>R</ShortcutBadge></span>}>
             <ActionButton
               onClick={handleEmojiButtonClick}
               icon={<IconMoodSmile size={17} stroke={2.1} />}
             />
           </Tooltip>
-          <Tooltip content="Reply">
+          <Tooltip content={<span className="flex items-center gap-1.5">Thread<ShortcutBadge>T</ShortcutBadge></span>}>
             <ActionButton
               onClick={() => {
                 if (props.thread) {
@@ -273,13 +275,13 @@ export function MessageBubble(props: MessageBubbleProps) {
           </Tooltip>
           {props.isOwn && (
             <>
-              <Tooltip content="Edit">
+              <Tooltip content={<span className="flex items-center gap-1.5">Edit<ShortcutBadge>E</ShortcutBadge></span>}>
                 <ActionButton
                   onClick={() => setIsEditing(true)}
                   icon={<IconPencil size={17} stroke={2.1} />}
                 />
               </Tooltip>
-              <Tooltip content="Delete">
+              <Tooltip content={<span className="flex items-center gap-1.5">Delete<ShortcutBadge>⌫</ShortcutBadge></span>}>
                 <ActionButton
                   onClick={props.onDelete}
                   danger
@@ -314,6 +316,14 @@ const ActionButton = forwardRef<HTMLButtonElement, {
     </button>
   );
 });
+
+function ShortcutBadge(props: { children: ReactNode }) {
+  return (
+    <kbd className="rounded bg-white/15 px-1 py-0.5 font-mono text-[10px] leading-none">
+      {props.children}
+    </kbd>
+  );
+}
 
 function groupReactions(reactions: readonly Reaction[], myIdentityHex: string | null): ReactionGroup[] {
   const map = new Map<string, { count: number; reacted: boolean }>();

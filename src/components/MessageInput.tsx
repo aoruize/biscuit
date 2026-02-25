@@ -8,10 +8,12 @@ interface MessageInputProps {
   onTyping: () => void;
   onStopTyping: () => void;
   onDraftChange?: (markdown: string) => void;
+  onNavigateUp?: () => void;
 }
 
 export interface MessageInputHandle {
   focus: () => void;
+  blur: () => void;
 }
 
 export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
@@ -21,6 +23,9 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
     useImperativeHandle(ref, () => ({
       focus() {
         editorRef.current?.focus();
+      },
+      blur() {
+        editorRef.current?.blur();
       },
     }));
 
@@ -33,6 +38,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         onTyping={props.onTyping}
         onStopTyping={props.onStopTyping}
         onDraftChange={props.onDraftChange}
+        onNavigateUp={props.onNavigateUp}
       />
     );
   }
