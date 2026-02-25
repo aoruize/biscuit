@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { IconHash } from '@tabler/icons-react';
 import type { Channel, Message, User, Thread } from '../module_bindings/types';
 import { MessageBubble } from './MessageBubble';
-import { MessageInput } from './MessageInput';
+import { MessageInput, type MessageInputHandle } from './MessageInput';
 
 interface MessageAreaProps {
   channel: Channel | null;
@@ -21,22 +21,40 @@ interface MessageAreaProps {
 }
 
 export function MessageArea(props: MessageAreaProps) {
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [isNearBottom, setIsNearBottom] = useState(true);
+  const inputRef = useRef<MessageInputHandle>(null);
+  const prevMsgCountRef = useRef(0);
+  const prevChannelRef = useRef<bigint | null>(null);
+
+  const scrollToBottom = useCallback(() => {
+    const el = containerRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, []);
 
   useEffect(() => {
-    if (isNearBottom) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const channelId = props.channel?.id ?? null;
+    if (channelId !== prevChannelRef.current) {
+      prevChannelRef.current = channelId;
+      requestAnimationFrame(() => {
+        scrollToBottom();
+        inputRef.current?.focus();
+      });
     }
-  }, [props.messages.length, isNearBottom]);
+  }, [props.channel?.id, scrollToBottom]);
 
-  function handleScroll() {
-    const el = containerRef.current;
-    if (!el) return;
-    const threshold = 100;
-    setIsNearBottom(el.scrollHeight - el.scrollTop - el.clientHeight < threshold);
-  }
+  useEffect(() => {
+    const count = props.messages.length;
+    if (count > prevMsgCountRef.current) {
+      const el = containerRef.current;
+      if (el) {
+        const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 150;
+        if (isNearBottom) {
+          requestAnimationFrame(scrollToBottom);
+        }
+      }
+    }
+    prevMsgCountRef.current = count;
+  }, [props.messages.length, scrollToBottom]);
 
   if (!props.channel) {
     return (
@@ -51,7 +69,7 @@ export function MessageArea(props: MessageAreaProps) {
 
   return (
     <div className="flex flex-1 flex-col border border-discord-active/50 bg-discord-chat/95">
-      <div className="flex min-h-14 items-center gap-2 border-b border-discord-active/50 px-4 py-2">
+      <div className="flex min-h-14 select-none items-center gap-2 border-b border-discord-active/50 px-4 py-2">
         <div className="rounded-xl bg-discord-sidebar p-2 text-discord-brand">
           <IconHash size={18} stroke={2.2} />
         </div>
@@ -66,12 +84,11 @@ export function MessageArea(props: MessageAreaProps) {
 
       <div
         ref={containerRef}
-        onScroll={handleScroll}
-        className="flex-1 overflow-y-auto px-4 py-4"
+        className="flex flex-1 flex-col overflow-y-auto px-4 py-4"
       >
         <div className="mb-5 rounded-xl border border-discord-active/40 bg-discord-sidebar/60 px-4 py-3">
-          <div className="mb-1.5 text-2xl font-semibold leading-tight text-discord-text">Welcome to #{props.channel.name}</div>
-          <p className="max-w-2xl text-base leading-relaxed text-discord-muted">
+          <div className="mb-1.5 select-none text-2xl font-semibold leading-tight text-discord-text">Welcome to #{props.channel.name}</div>
+          <p className="max-w-2xl select-none text-base leading-relaxed text-discord-muted">
             This is the start of the #{props.channel.name} channel.
             {props.channel.topic && ` ${props.channel.topic}`}
           </p>
@@ -99,11 +116,11 @@ export function MessageArea(props: MessageAreaProps) {
             />
           );
         })}
-        <div ref={messagesEndRef} />
       </div>
 
-      <div className="px-4 pb-4">
+      <div className="px-4 pb-2">
         <MessageInput
+          ref={inputRef}
           placeholder={`Message #${props.channel.name}`}
           onSend={props.onSendMessage}
           onTyping={props.onTyping}
@@ -128,7 +145,7 @@ function TypingIndicator(props: { users: readonly User[]; getUserDisplayName: (u
   }
 
   return (
-    <div className="flex h-5 items-center gap-1 text-xs text-discord-muted">
+    <div className="flex h-5 select-none items-center gap-1 text-xs text-discord-muted">
       <span className="inline-flex gap-0.5">
         <span className="animate-bounce [animation-delay:0ms] text-base">.</span>
         <span className="animate-bounce [animation-delay:150ms] text-base">.</span>

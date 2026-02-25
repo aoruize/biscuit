@@ -140,19 +140,22 @@ export function MessageBubble(props: MessageBubbleProps) {
         {props.thread && (
           <button
             onClick={() => props.onOpenThread(props.thread!.id)}
-            className="mt-2 flex cursor-pointer items-center gap-2 rounded-lg px-1 py-1 text-[13px] transition-colors hover:bg-discord-hover/40"
+            className="group/thread mt-2 flex w-full cursor-pointer select-none items-center gap-2 rounded-lg px-1 py-1 text-[13px] transition-colors hover:bg-discord-hover/40"
           >
             <div
-              className="flex h-5 w-5 shrink-0 select-none items-center justify-center rounded text-[9px] font-semibold text-discord-darker"
+              className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-[9px] font-semibold text-discord-darker"
               style={{ backgroundColor: avatarColor }}
             >
               {displayName.charAt(0).toUpperCase()}
             </div>
-            <span className="select-none font-medium text-discord-link">
+            <span className="font-medium text-discord-link">
               {props.thread.replyCount.toString()} {props.thread.replyCount === 1n ? 'reply' : 'replies'}
             </span>
-            <span className="select-none text-[11px] text-discord-muted">
+            <span className="text-[11px] text-discord-muted group-hover/thread:hidden">
               {formatShortDate(props.thread.lastActivity.toDate())}
+            </span>
+            <span className="hidden text-[11px] font-medium text-discord-muted group-hover/thread:inline">
+              View thread &rsaquo;
             </span>
           </button>
         )}
