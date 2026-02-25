@@ -1,0 +1,21 @@
+node_modules/
+dist/
+.env
+.env.*
+*.local
+
+# SpacetimeDB
+spacetime.local.json
+spacetimedb/.spacetime/
+**/module_bindings/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

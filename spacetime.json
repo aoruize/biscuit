@@ -1,0 +1,9 @@
+{
+  "dev": {
+    "run": "bun run dev"
+  },
+  "_source-config": "spacetime.local.json",
+  "database": "biscuitdb",
+  "module-path": "./spacetimedb",
+  "server": "maincloud"
+}

@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+@theme {
+  --color-discord-dark: #14110f;
+  --color-discord-darker: #0f0c0a;
+  --color-discord-sidebar: #241d19;
+  --color-discord-chat: #1c1714;
+  --color-discord-input: #2d241f;
+  --color-discord-hover: #332923;
+  --color-discord-active: #40332a;
+  --color-discord-text: #f7f1e8;
+  --color-discord-muted: #b8a99a;
+  --color-discord-link: #9fd1ff;
+  --color-discord-brand: #f2b46d;
+  --color-discord-brand-hover: #e89a42;
+  --color-discord-green: #72d59c;
+  --color-discord-red: #ff8f87;
+  --color-discord-yellow: #f8d079;
+  --color-discord-channel: #c7b9ab;
+}
+
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html, body, #root {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  body {
+    font-family: 'Plus Jakarta Sans', 'Inter', 'Noto Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    background: radial-gradient(circle at top right, #2d2218 0%, #14110f 42%, #0f0c0a 100%);
+    color: var(--color-discord-text);
+  }
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #5a4637;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #745844;
+}
