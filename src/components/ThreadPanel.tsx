@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import clsx from 'clsx';
 import { IconHash, IconMessageCircle2, IconX } from '@tabler/icons-react';
 import type { Thread, Message, User, Reaction } from '../module_bindings/types';
@@ -38,9 +38,23 @@ export function ThreadPanel(props: ThreadPanelProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [props.messages.length]);
 
+  const focusReplyInput = useCallback(() => {
+    let attempts = 0;
+    function tryFocus() {
+      if (replyInputRef.current) {
+        replyInputRef.current.focus();
+        return;
+      }
+      if (++attempts < 5) {
+        requestAnimationFrame(tryFocus);
+      }
+    }
+    requestAnimationFrame(tryFocus);
+  }, []);
+
   useEffect(() => {
-    replyInputRef.current?.focus();
-  }, [props.thread.id, props.focusKey]);
+    focusReplyInput();
+  }, [props.thread.id, props.focusKey, focusReplyInput]);
 
   useEffect(() => {
     if (!props.highlightedMessageId || !scrollContainerRef.current) return;
