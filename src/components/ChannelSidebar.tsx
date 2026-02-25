@@ -73,8 +73,8 @@ export function ChannelSidebar(props: ChannelSidebarProps) {
         {starred.length > 0 && (
           <>
             <div className="mb-1.5 flex items-center justify-between px-1">
-              <span className="select-none text-[11px] font-bold uppercase tracking-[0.16em] text-discord-muted">
-                <IconStarFilled size={10} className="mb-px mr-1 inline text-discord-yellow" />
+              <span className="inline-flex items-center select-none text-[11px] font-bold uppercase tracking-[0.16em] text-discord-muted">
+                <IconStarFilled size={14} className="-mt-px mr-1.5 text-discord-yellow" />
                 Starred
               </span>
             </div>
