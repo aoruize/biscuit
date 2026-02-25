@@ -153,7 +153,6 @@ export function MessageArea(props: MessageAreaProps) {
             document.dispatchEvent(new CustomEvent('context-menu-action', {
               detail: { action: 'edit', messageId: msg.id.toString() },
             }));
-            setSelectedMessageId(null);
           } else if (key === 'r') {
             e.preventDefault();
             const el = containerRef.current?.querySelector(
