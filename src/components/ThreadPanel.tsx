@@ -7,6 +7,7 @@ import { MessageInput, type MessageInputHandle } from './MessageInput';
 
 interface ThreadPanelProps {
   thread: Thread;
+  focusKey?: number;
   channelName: string;
   parentMessage: Message | undefined;
   messages: readonly Message[];
@@ -39,7 +40,7 @@ export function ThreadPanel(props: ThreadPanelProps) {
 
   useEffect(() => {
     replyInputRef.current?.focus();
-  }, [props.thread.id]);
+  }, [props.thread.id, props.focusKey]);
 
   useEffect(() => {
     if (!props.highlightedMessageId || !scrollContainerRef.current) return;

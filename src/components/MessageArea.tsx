@@ -27,6 +27,7 @@ interface MessageAreaProps {
   onTyping: () => void;
   onStopTyping: () => void;
   onDraftChange?: (markdown: string) => void;
+  draft?: string;
 }
 
 export function MessageArea(props: MessageAreaProps) {
@@ -168,8 +169,10 @@ export function MessageArea(props: MessageAreaProps) {
 
       <div className="px-4 pb-2">
         <MessageInput
+          key={props.channel.id.toString()}
           ref={inputRef}
           placeholder={`Message #${props.channel.name}`}
+          initialContent={props.draft}
           onSend={props.onSendMessage}
           onTyping={props.onTyping}
           onStopTyping={props.onStopTyping}

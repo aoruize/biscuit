@@ -3,6 +3,7 @@ import { RichTextEditor, type RichTextEditorHandle } from './RichTextEditor';
 
 interface MessageInputProps {
   placeholder: string;
+  initialContent?: string;
   onSend: (text: string) => void;
   onTyping: () => void;
   onStopTyping: () => void;
@@ -27,6 +28,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
       <RichTextEditor
         ref={editorRef}
         placeholder={props.placeholder}
+        initialContent={props.initialContent}
         onSend={props.onSend}
         onTyping={props.onTyping}
         onStopTyping={props.onStopTyping}

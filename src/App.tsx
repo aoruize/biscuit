@@ -17,6 +17,7 @@ function App() {
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
   const showMembers = true;
   const pendingThreadMsgRef = useRef<bigint | null>(null);
+  const [threadFocusKey, setThreadFocusKey] = useState(0);
 
   useEffect(() => {
     if (pendingThreadMsgRef.current === null) return;
@@ -52,6 +53,7 @@ function App() {
     const existingThread = discord.getThreadForMessage(messageId);
     if (existingThread) {
       discord.setSelectedThreadId(existingThread.id);
+      setThreadFocusKey(k => k + 1);
       return;
     }
     if (discord.selectedChannelId === null) return;
@@ -63,6 +65,7 @@ function App() {
       parentMessageId: messageId,
       name: threadName,
     });
+    setThreadFocusKey(k => k + 1);
   }
 
   function handleChannelTyping() {
@@ -155,7 +158,7 @@ function App() {
               onEditMessage={(id, text) => discord.editMessage({ messageId: id, text })}
               onDeleteMessage={(id) => discord.deleteMessage({ messageId: id })}
               onCreateThread={handleCreateThread}
-              onOpenThread={(id) => discord.setSelectedThreadId(id)}
+              onOpenThread={(id) => { discord.setSelectedThreadId(id); setThreadFocusKey(k => k + 1); }}
               onToggleReaction={discord.handleToggleReaction}
               onNavigateToThread={handleNavigateToThread}
               onTyping={handleChannelTyping}
@@ -165,6 +168,7 @@ function App() {
                   discord.setDraft(discord.selectedChannelId, md);
                 }
               }}
+              draft={discord.selectedChannelId !== null ? discord.getDraft(discord.selectedChannelId) : undefined}
             />
             {discord.selectedThread && (
               <ResizeHandle isDragging={messageArea.isDragging} onMouseDown={messageArea.handleMouseDown} side="right" />
@@ -174,6 +178,7 @@ function App() {
           {discord.selectedThread && (
             <ThreadPanel
               thread={discord.selectedThread}
+              focusKey={threadFocusKey}
               channelName={discord.currentChannel?.name ?? ''}
               parentMessage={parentMessage}
               messages={discord.threadMessages}

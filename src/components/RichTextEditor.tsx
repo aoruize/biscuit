@@ -9,8 +9,6 @@ import {
 import { useEditor, useEditorState, EditorContent, type Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
-import TaskList from '@tiptap/extension-task-list';
-import TaskItem from '@tiptap/extension-task-item';
 import Placeholder from '@tiptap/extension-placeholder';
 import { Markdown, type MarkdownStorage } from 'tiptap-markdown';
 import { Extension } from '@tiptap/core';
@@ -23,7 +21,6 @@ import {
   IconBlockquote,
   IconList,
   IconListNumbers,
-  IconListCheck,
   IconH1,
   IconH2,
   IconLink,
@@ -64,6 +61,20 @@ function createEnterToSendExtension(onSend: () => void) {
           onSend();
           return true;
         },
+        'Shift-Enter': ({ editor }) => {
+          if (editor.isActive('bulletList') || editor.isActive('orderedList')) {
+            return editor.commands.splitListItem('listItem');
+          }
+          if (editor.isActive('blockquote')) {
+            return editor.commands.splitBlock();
+          }
+          return editor.commands.first([
+            () => editor.commands.newlineInCode(),
+            () => editor.commands.createParagraphNear(),
+            () => editor.commands.liftEmptyBlock(),
+            () => editor.commands.splitBlock(),
+          ]);
+        },
       };
     },
   });
@@ -97,10 +108,9 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
       extensions: [
         StarterKit.configure({
           heading: { levels: [1, 2, 3] },
+          hardBreak: false,
         }),
         Link.configure({ openOnClick: false, autolink: true }),
-        TaskList,
-        TaskItem.configure({ nested: true }),
         Placeholder.configure({ placeholder: props.placeholder }),
         Markdown.configure({
           html: false,
@@ -252,12 +262,6 @@ const toolbarButtons: ToolbarButtonDef[] = [
     icon: <IconListNumbers size={ICON_SIZE} stroke={ICON_STROKE} />,
     action: (e) => e.chain().focus().toggleOrderedList().run(),
     isActive: (e) => e.isActive('orderedList'),
-  },
-  {
-    label: 'Task list',
-    icon: <IconListCheck size={ICON_SIZE} stroke={ICON_STROKE} />,
-    action: (e) => e.chain().focus().toggleTaskList().run(),
-    isActive: (e) => e.isActive('taskList'),
   },
   {
     label: 'Blockquote',
