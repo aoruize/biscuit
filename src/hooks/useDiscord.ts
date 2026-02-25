@@ -1,7 +1,14 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { tables, reducers } from '../module_bindings';
 import { useSpacetimeDB, useTable, useReducer } from 'spacetimedb/react';
 import type { Thread, Message, User, Reaction } from '../module_bindings/types';
+
+interface OptimisticToggle {
+  messageId: bigint;
+  emoji: string;
+  identityHex: string;
+  action: 'add' | 'remove';
+}
 
 export function useDiscord() {
   const { identity, isActive: connected } = useSpacetimeDB();
@@ -29,6 +36,22 @@ export function useDiscord() {
   const [selectedChannelId, setSelectedChannelId] = useState<bigint | null>(null);
   const [selectedThreadId, setSelectedThreadId] = useState<bigint | null>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [optimisticToggles, setOptimisticToggles] = useState<OptimisticToggle[]>([]);
+
+  useEffect(() => {
+    setOptimisticToggles(prev => {
+      if (prev.length === 0) return prev;
+      const next = prev.filter(toggle => {
+        const serverHas = reactions.some(r =>
+          r.messageId === toggle.messageId &&
+          r.emoji === toggle.emoji &&
+          r.reactor.toHexString() === toggle.identityHex
+        );
+        return toggle.action === 'add' ? !serverHas : serverHas;
+      });
+      return next.length < prev.length ? next : prev;
+    });
+  }, [reactions]);
 
   const currentChannel = selectedChannelId !== null
     ? channels.find(c => c.id === selectedChannelId) ?? null
@@ -86,7 +109,47 @@ export function useDiscord() {
   }
 
   function getReactionsForMessage(msgId: bigint): Reaction[] {
-    return reactions.filter(r => r.messageId === msgId);
+    const serverReactions = reactions.filter(r => r.messageId === msgId);
+    const relevant = optimisticToggles.filter(t => t.messageId === msgId);
+    if (relevant.length === 0) return serverReactions;
+
+    const result = [...serverReactions];
+    for (const toggle of relevant) {
+      if (toggle.action === 'remove') {
+        const idx = result.findIndex(r =>
+          r.emoji === toggle.emoji && r.reactor.toHexString() === toggle.identityHex
+        );
+        if (idx !== -1) result.splice(idx, 1);
+      } else {
+        const exists = result.some(r =>
+          r.emoji === toggle.emoji && r.reactor.toHexString() === toggle.identityHex
+        );
+        if (!exists && identity) {
+          result.push({ id: 0n, messageId: msgId, emoji: toggle.emoji, reactor: identity } as Reaction);
+        }
+      }
+    }
+    return result;
+  }
+
+  function handleToggleReaction(messageId: bigint, emoji: string) {
+    if (!identity) return;
+    const identityHex = identity.toHexString();
+
+    const serverHas = reactions.some(r =>
+      r.messageId === messageId && r.emoji === emoji && r.reactor.toHexString() === identityHex
+    );
+    const existing = optimisticToggles.find(t =>
+      t.messageId === messageId && t.emoji === emoji && t.identityHex === identityHex
+    );
+    const effectivelyHas = existing ? existing.action === 'add' : serverHas;
+
+    setOptimisticToggles(prev => [
+      ...prev.filter(t => !(t.messageId === messageId && t.emoji === emoji && t.identityHex === identityHex)),
+      { messageId, emoji, identityHex, action: effectivelyHas ? 'remove' : 'add' },
+    ]);
+
+    toggleReaction({ messageId, emoji });
   }
 
   function isOwnMessage(msg: Message): boolean {
@@ -140,7 +203,7 @@ export function useDiscord() {
     handleSendTyping,
     handleStopTyping,
     clearTyping,
-    toggleReaction,
+    handleToggleReaction,
     getChannelTypingUsers,
     getUserDisplayName,
     getUserForMessage,

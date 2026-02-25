@@ -116,7 +116,7 @@ function App() {
             onDeleteMessage={(id) => discord.deleteMessage({ messageId: id })}
             onCreateThread={handleCreateThread}
             onOpenThread={(id) => discord.setSelectedThreadId(id)}
-            onToggleReaction={(msgId, emoji) => discord.toggleReaction({ messageId: msgId, emoji })}
+            onToggleReaction={discord.handleToggleReaction}
             onTyping={handleChannelTyping}
             onStopTyping={handleStopTyping}
           />
@@ -138,7 +138,7 @@ function App() {
               onSendReply={handleSendThreadReply}
               onEditMessage={(id, text) => discord.editMessage({ messageId: id, text })}
               onDeleteMessage={(id) => discord.deleteMessage({ messageId: id })}
-              onToggleReaction={(msgId, emoji) => discord.toggleReaction({ messageId: msgId, emoji })}
+              onToggleReaction={discord.handleToggleReaction}
               onClose={() => discord.setSelectedThreadId(null)}
               onTyping={handleThreadTyping}
               onStopTyping={handleStopTyping}
