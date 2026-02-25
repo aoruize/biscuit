@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { tables, reducers } from '../module_bindings';
 import { useSpacetimeDB, useTable, useReducer } from 'spacetimedb/react';
 import type { Thread, Message, User, Reaction } from '../module_bindings/types';
@@ -97,6 +97,24 @@ export function useDiscord() {
 
   const activeChannelId = currentChannel?.id ?? null;
 
+  const unconfirmedOptimistic = useMemo(() => {
+    const matched = new Set<bigint>();
+    return optimisticMessages.filter(opt => {
+      const match = allMessages.find(m =>
+        !matched.has(m.id) &&
+        m.channelId === opt.channelId &&
+        m.threadId === opt.threadId &&
+        m.text === opt.text &&
+        m.sender.toHexString() === opt.senderHex
+      );
+      if (match) {
+        matched.add(match.id);
+        return false;
+      }
+      return true;
+    });
+  }, [optimisticMessages, allMessages]);
+
   function toDisplayMessage(opt: OptimisticMessage): Message {
     return {
       id: opt.tempId,
@@ -113,7 +131,7 @@ export function useDiscord() {
 
   const channelMessages = [
     ...allMessages.filter(m => m.channelId === activeChannelId && m.threadId === 0n),
-    ...optimisticMessages
+    ...unconfirmedOptimistic
       .filter(o => o.channelId === activeChannelId && o.threadId === 0n)
       .map(toDisplayMessage),
   ].sort((a, b) => (a.sent.toDate() > b.sent.toDate() ? 1 : -1));
@@ -125,7 +143,7 @@ export function useDiscord() {
   const threadMessages = selectedThreadId !== null
     ? [
         ...allMessages.filter(m => m.threadId === selectedThreadId),
-        ...optimisticMessages
+        ...unconfirmedOptimistic
           .filter(o => o.threadId === selectedThreadId)
           .map(toDisplayMessage),
       ].sort((a, b) => (a.sent.toDate() > b.sent.toDate() ? 1 : -1))
