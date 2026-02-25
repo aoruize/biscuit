@@ -4,6 +4,7 @@ import {
   useRef,
   useCallback,
   useEffect,
+  useState,
 } from 'react';
 import { useEditor, useEditorState, EditorContent, type Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -29,6 +30,7 @@ import {
   IconCodeDots,
 } from '@tabler/icons-react';
 import { Tooltip } from './Tooltip';
+import { Dialog, DialogFooter } from './Dialog';
 
 interface RichTextEditorProps {
   placeholder: string;
@@ -36,6 +38,7 @@ interface RichTextEditorProps {
   onSend?: (markdown: string) => void;
   onTyping?: () => void;
   onStopTyping?: () => void;
+  onDraftChange?: (markdown: string) => void;
   onEscape?: () => void;
   autoFocus?: boolean;
   compact?: boolean;
@@ -81,7 +84,10 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
       editor.commands.clearContent(true);
       wasEmptyRef.current = true;
       propsRef.current.onStopTyping?.();
+      propsRef.current.onDraftChange?.('');
     }, []);
+
+    const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const enterToSend = useRef(
       props.onSend ? createEnterToSendExtension(handleSend) : null
@@ -125,6 +131,14 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
           propsRef.current.onTyping?.();
         }
         wasEmptyRef.current = isEmpty;
+
+        if (propsRef.current.onDraftChange) {
+          if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
+          draftTimerRef.current = setTimeout(() => {
+            const md = getEditorMarkdown(e);
+            propsRef.current.onDraftChange?.(md);
+          }, 400);
+        }
       },
     });
 
@@ -146,6 +160,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
 
     useEffect(() => {
       return () => {
+        if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
         editorRef.current?.destroy();
       };
     }, []);
@@ -250,24 +265,11 @@ const toolbarButtons: ToolbarButtonDef[] = [
     action: (e) => e.chain().focus().toggleBlockquote().run(),
     isActive: (e) => e.isActive('blockquote'),
   },
-  {
-    label: 'Link',
-    icon: <IconLink size={ICON_SIZE} stroke={ICON_STROKE} />,
-    action: (e) => {
-      if (e.isActive('link')) {
-        e.chain().focus().unsetLink().run();
-        return;
-      }
-      const url = window.prompt('URL');
-      if (url) {
-        e.chain().focus().setLink({ href: url }).run();
-      }
-    },
-    isActive: (e) => e.isActive('link'),
-  },
 ];
 
 function Toolbar(props: ToolbarProps) {
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+
   const activeStates = useEditorState({
     editor: props.editor,
     selector: (ctx) => {
@@ -276,25 +278,121 @@ function Toolbar(props: ToolbarProps) {
     },
   });
 
+  const linkActive = props.editor.isActive('link');
+
+  function handleLinkClick() {
+    if (linkActive) {
+      props.editor.chain().focus().unsetLink().run();
+      return;
+    }
+    setLinkDialogOpen(true);
+  }
+
+  function handleLinkSubmit(url: string) {
+    if (url) {
+      props.editor.chain().focus().setLink({ href: url }).run();
+    } else {
+      props.editor.chain().focus().run();
+    }
+    setLinkDialogOpen(false);
+  }
+
   return (
-    <div className="flex flex-wrap gap-0.5 border-b border-discord-active/40 px-2 py-1">
-      {toolbarButtons.map((btn, i) => (
-        <Tooltip key={btn.label} content={btn.label}>
+    <>
+      <div className="flex flex-wrap gap-0.5 border-b border-discord-active/40 px-2 py-1">
+        {toolbarButtons.map((btn, i) => (
+          <Tooltip key={btn.label} content={btn.label}>
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => btn.action(props.editor)}
+              className={clsx(
+                'cursor-pointer rounded-md p-1.5 transition-colors',
+                activeStates[i]
+                  ? 'bg-discord-active/60 text-discord-brand'
+                  : 'text-discord-muted hover:bg-discord-hover/50 hover:text-discord-text'
+              )}
+            >
+              {btn.icon}
+            </button>
+          </Tooltip>
+        ))}
+        <Tooltip content="Link">
           <button
             type="button"
             onMouseDown={(e) => e.preventDefault()}
-            onClick={() => btn.action(props.editor)}
+            onClick={handleLinkClick}
             className={clsx(
               'cursor-pointer rounded-md p-1.5 transition-colors',
-              activeStates[i]
+              linkActive
                 ? 'bg-discord-active/60 text-discord-brand'
                 : 'text-discord-muted hover:bg-discord-hover/50 hover:text-discord-text'
             )}
           >
-            {btn.icon}
+            <IconLink size={ICON_SIZE} stroke={ICON_STROKE} />
           </button>
         </Tooltip>
-      ))}
-    </div>
+      </div>
+      <LinkDialog
+        open={linkDialogOpen}
+        onClose={() => {
+          setLinkDialogOpen(false);
+          props.editor.chain().focus().run();
+        }}
+        onSubmit={handleLinkSubmit}
+      />
+    </>
+  );
+}
+
+interface LinkDialogProps {
+  open: boolean;
+  onClose: () => void;
+  onSubmit: (url: string) => void;
+}
+
+function LinkDialog(props: LinkDialogProps) {
+  const [url, setUrl] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (props.open) {
+      setUrl('');
+      requestAnimationFrame(() => inputRef.current?.focus());
+    }
+  }, [props.open]);
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmed = url.trim();
+    if (!trimmed) return;
+    const withProtocol =
+      trimmed.startsWith('http://') || trimmed.startsWith('https://')
+        ? trimmed
+        : `https://${trimmed}`;
+    props.onSubmit(withProtocol);
+  }
+
+  return (
+    <Dialog open={props.open} onClose={props.onClose} title="Insert Link" maxWidth="max-w-[400px]">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <div className="flex flex-col gap-2">
+          <label className="select-none text-xs font-bold uppercase tracking-wide text-discord-muted">
+            URL
+          </label>
+          <input
+            ref={inputRef}
+            className="w-full rounded-xl border border-discord-active bg-discord-input px-3 py-2.5 text-discord-text outline-none placeholder:text-discord-muted focus:ring-2 focus:ring-discord-brand"
+            placeholder="https://example.com"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+          />
+        </div>
+        <DialogFooter
+          onCancel={props.onClose}
+          submitLabel="Insert"
+        />
+      </form>
+    </Dialog>
   );
 }

@@ -97,7 +97,20 @@ const reaction = table(
   }
 );
 
-const spacetimedb = schema({ user, channel, message, thread, typing_indicator, reaction });
+const starred_channel = table(
+  {
+    name: 'starred_channel',
+    public: true,
+    indexes: [{ name: 'starred_channel_identity', algorithm: 'btree' as const, columns: ['identity'] }],
+  },
+  {
+    id: t.u64().primaryKey().autoInc(),
+    identity: t.identity(),
+    channelId: t.u64(),
+  }
+);
+
+const spacetimedb = schema({ user, channel, message, thread, typing_indicator, reaction, starred_channel });
 export default spacetimedb;
 
 export const set_name = spacetimedb.reducer(
@@ -291,7 +304,7 @@ export const send_thread_reply = spacetimedb.reducer(
       text: trimmed,
       sent: ctx.timestamp,
       edited: false,
-      alsoSentToChannel,
+      alsoSentToChannel: alsoSendToChannel,
     });
 
     if (alsoSendToChannel) {
@@ -355,7 +368,8 @@ export const toggle_reaction = spacetimedb.reducer(
     if (!msg) throw new SenderError('Message not found');
 
     const senderHex = ctx.sender.toHexString();
-    for (const r of ctx.db.reaction.reaction_message_id.filter(messageId)) {
+    for (const r of ctx.db.reaction.iter()) {
+      if (r.messageId !== messageId) continue;
       if (r.emoji === emoji && r.reactor.toHexString() === senderHex) {
         ctx.db.reaction.id.delete(r.id);
         return;
@@ -367,6 +381,27 @@ export const toggle_reaction = spacetimedb.reducer(
       messageId,
       emoji,
       reactor: ctx.sender,
+    });
+  }
+);
+
+export const toggle_star = spacetimedb.reducer(
+  { channelId: t.u64() },
+  (ctx, { channelId }) => {
+    const ch = ctx.db.channel.id.find(channelId);
+    if (!ch) throw new SenderError('Channel not found');
+
+    for (const s of ctx.db.starred_channel.iter()) {
+      if (s.identity.toHexString() === ctx.sender.toHexString() && s.channelId === channelId) {
+        ctx.db.starred_channel.id.delete(s.id);
+        return;
+      }
+    }
+
+    ctx.db.starred_channel.insert({
+      id: 0n,
+      identity: ctx.sender,
+      channelId,
     });
   }
 );

@@ -6,6 +6,7 @@ interface MessageInputProps {
   onSend: (text: string) => void;
   onTyping: () => void;
   onStopTyping: () => void;
+  onDraftChange?: (markdown: string) => void;
 }
 
 export interface MessageInputHandle {
@@ -29,6 +30,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         onSend={props.onSend}
         onTyping={props.onTyping}
         onStopTyping={props.onStopTyping}
+        onDraftChange={props.onDraftChange}
       />
     );
   }

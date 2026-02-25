@@ -26,6 +26,7 @@ interface MessageAreaProps {
   onNavigateToThread: (threadId: bigint, messageId: bigint) => void;
   onTyping: () => void;
   onStopTyping: () => void;
+  onDraftChange?: (markdown: string) => void;
 }
 
 export function MessageArea(props: MessageAreaProps) {
@@ -172,6 +173,7 @@ export function MessageArea(props: MessageAreaProps) {
           onSend={props.onSendMessage}
           onTyping={props.onTyping}
           onStopTyping={props.onStopTyping}
+          onDraftChange={props.onDraftChange}
         />
         <TypingIndicator users={props.typingUsers} getUserDisplayName={props.getUserDisplayName} />
       </div>

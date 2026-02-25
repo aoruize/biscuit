@@ -30,6 +30,7 @@ export function useDiscord() {
   const [users] = useTable(tables.user);
   const [typingIndicators] = useTable(tables.typing_indicator);
   const [reactions] = useTable(tables.reaction);
+  const [starredChannels] = useTable(tables.starred_channel);
 
   const setName = useReducer(reducers.setName);
   const createChannel = useReducer(reducers.createChannel);
@@ -43,10 +44,12 @@ export function useDiscord() {
   const setTyping = useReducer(reducers.setTyping);
   const clearTyping = useReducer(reducers.clearTyping);
   const toggleReaction = useReducer(reducers.toggleReaction);
+  const toggleStar = useReducer(reducers.toggleStar);
 
   const [selectedChannelId, setSelectedChannelId] = useState<bigint | null>(null);
   const [selectedThreadId, setSelectedThreadId] = useState<bigint | null>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [drafts, setDrafts] = useState<Map<string, string>>(new Map());
   const [optimisticToggles, setOptimisticToggles] = useState<OptimisticToggle[]>([]);
   const [optimisticMessages, setOptimisticMessages] = useState<OptimisticMessage[]>([]);
   const tempIdCounter = useRef(BigInt(Number.MAX_SAFE_INTEGER));
@@ -274,6 +277,43 @@ export function useDiscord() {
     return msg.sender.toHexString() === identity.toHexString();
   }
 
+  function setDraft(channelId: bigint, markdown: string) {
+    const key = channelId.toString();
+    setDrafts(prev => {
+      const next = new Map(prev);
+      if (markdown.trim()) {
+        next.set(key, markdown);
+      } else {
+        next.delete(key);
+      }
+      return next;
+    });
+  }
+
+  function getDraft(channelId: bigint): string {
+    return drafts.get(channelId.toString()) ?? '';
+  }
+
+  function hasDraft(channelId: bigint): boolean {
+    return drafts.has(channelId.toString());
+  }
+
+  const myStarredChannelIds: Set<bigint> = new Set(
+    identity
+      ? starredChannels
+          .filter(s => s.identity.toHexString() === identity.toHexString())
+          .map(s => s.channelId)
+      : []
+  );
+
+  function isChannelStarred(channelId: bigint): boolean {
+    return myStarredChannelIds.has(channelId);
+  }
+
+  function handleToggleStar(channelId: bigint) {
+    toggleStar({ channelId });
+  }
+
   const handleSendTyping = useCallback((channelId: bigint, threadId: bigint) => {
     setTyping({ channelId, threadId });
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
@@ -321,12 +361,18 @@ export function useDiscord() {
     handleStopTyping,
     clearTyping,
     handleToggleReaction,
+    handleToggleStar,
     getChannelTypingUsers,
     getUserDisplayName,
     getUserForMessage,
     getThreadForMessage,
     getReactionsForMessage,
     isOwnMessage,
+    isChannelStarred,
+    myStarredChannelIds,
+    setDraft,
+    getDraft,
+    hasDraft,
   };
 }
 

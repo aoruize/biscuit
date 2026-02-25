@@ -119,12 +119,15 @@ function App() {
             channels={discord.channels}
             selectedChannelId={discord.selectedChannelId}
             currentUser={discord.currentUser}
+            starredChannelIds={discord.myStarredChannelIds}
+            channelHasDraft={discord.hasDraft}
             onSelectChannel={(id) => {
               discord.setSelectedChannelId(id);
               discord.setSelectedThreadId(null);
             }}
             onCreateChannel={(name, topic) => discord.createChannel({ name, topic })}
             onDeleteChannel={(id) => discord.deleteChannel({ channelId: id })}
+            onToggleStar={(id) => discord.handleToggleStar(id)}
             getUserDisplayName={discord.getUserDisplayName}
             onEditProfile={() => setShowProfile(true)}
           />
@@ -157,6 +160,11 @@ function App() {
               onNavigateToThread={handleNavigateToThread}
               onTyping={handleChannelTyping}
               onStopTyping={handleStopTyping}
+              onDraftChange={(md) => {
+                if (discord.selectedChannelId !== null) {
+                  discord.setDraft(discord.selectedChannelId, md);
+                }
+              }}
             />
             {discord.selectedThread && (
               <ResizeHandle isDragging={messageArea.isDragging} onMouseDown={messageArea.handleMouseDown} side="right" />

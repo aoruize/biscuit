@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import clsx from 'clsx';
 import {
   IconHash,
+  IconPencil,
   IconPlus,
   IconSettings,
-  IconTrash,
+  IconStarFilled,
 } from '@tabler/icons-react';
 import type { Channel, User } from '../module_bindings/types';
 
@@ -12,9 +13,12 @@ interface ChannelSidebarProps {
   channels: readonly Channel[];
   selectedChannelId: bigint | null;
   currentUser: User | null;
+  starredChannelIds: ReadonlySet<bigint>;
+  channelHasDraft: (channelId: bigint) => boolean;
   onSelectChannel: (id: bigint) => void;
   onCreateChannel: (name: string, topic: string) => void;
   onDeleteChannel: (id: bigint) => void;
+  onToggleStar: (id: bigint) => void;
   getUserDisplayName: (user: User) => string;
   onEditProfile: () => void;
 }
@@ -23,6 +27,7 @@ export function ChannelSidebar(props: ChannelSidebarProps) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newChannelName, setNewChannelName] = useState('');
   const [newChannelTopic, setNewChannelTopic] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState<Channel | null>(null);
 
   function handleCreateChannel(e: React.FormEvent) {
     e.preventDefault();
@@ -34,6 +39,26 @@ export function ChannelSidebar(props: ChannelSidebarProps) {
     }
   }
 
+  const propsRef = useRef(props);
+  propsRef.current = props;
+
+  useEffect(() => {
+    function handleContextAction(e: Event) {
+      const detail = (e as CustomEvent).detail as { action: string; channelId: string };
+      if (detail.action === 'delete-channel') {
+        const ch = propsRef.current.channels.find(c => c.id.toString() === detail.channelId);
+        if (ch) setConfirmDelete(ch);
+      } else if (detail.action === 'toggle-star') {
+        propsRef.current.onToggleStar(BigInt(detail.channelId));
+      }
+    }
+    document.addEventListener('context-menu-action', handleContextAction);
+    return () => document.removeEventListener('context-menu-action', handleContextAction);
+  }, []);
+
+  const starred = props.channels.filter(c => props.starredChannelIds.has(c.id));
+  const unstarred = props.channels.filter(c => !props.starredChannelIds.has(c.id));
+
   return (
     <div className="flex h-full w-full flex-col bg-discord-sidebar/90">
       <div className="flex h-12 items-center px-3">
@@ -43,6 +68,29 @@ export function ChannelSidebar(props: ChannelSidebarProps) {
       </div>
 
       <div className="flex-1 overflow-y-auto px-2 pt-3">
+        {starred.length > 0 && (
+          <>
+            <div className="mb-1.5 flex items-center justify-between px-1">
+              <span className="select-none text-[11px] font-bold uppercase tracking-[0.16em] text-discord-muted">
+                <IconStarFilled size={10} className="mb-px mr-1 inline text-discord-yellow" />
+                Starred
+              </span>
+            </div>
+            <div className="mb-3 flex flex-col gap-0.5 px-0.5">
+              {starred.map(channel => (
+                <ChannelItem
+                  key={channel.id.toString()}
+                  channel={channel}
+                  isSelected={props.selectedChannelId === channel.id}
+                  hasDraft={props.channelHasDraft(channel.id)}
+                  isStarred
+                  onSelect={() => props.onSelectChannel(channel.id)}
+                />
+              ))}
+            </div>
+          </>
+        )}
+
         <div className="mb-1.5 flex items-center justify-between px-1">
           <span className="select-none text-[11px] font-bold uppercase tracking-[0.16em] text-discord-muted">
             Text Channels
@@ -57,13 +105,14 @@ export function ChannelSidebar(props: ChannelSidebarProps) {
         </div>
 
         <div className="flex flex-col gap-0.5 px-0.5 pb-2">
-        {props.channels.map(channel => (
+        {unstarred.map(channel => (
           <ChannelItem
             key={channel.id.toString()}
             channel={channel}
             isSelected={props.selectedChannelId === channel.id}
+            hasDraft={props.channelHasDraft(channel.id)}
+            isStarred={false}
             onSelect={() => props.onSelectChannel(channel.id)}
-            onDelete={() => props.onDeleteChannel(channel.id)}
           />
         ))}
         </div>
@@ -148,6 +197,17 @@ export function ChannelSidebar(props: ChannelSidebarProps) {
           </div>
         </div>
       )}
+
+      {confirmDelete && (
+        <ConfirmDeleteDialog
+          channel={confirmDelete}
+          onConfirm={() => {
+            props.onDeleteChannel(confirmDelete.id);
+            setConfirmDelete(null);
+          }}
+          onCancel={() => setConfirmDelete(null)}
+        />
+      )}
     </div>
   );
 }
@@ -155,15 +215,23 @@ export function ChannelSidebar(props: ChannelSidebarProps) {
 function ChannelItem(props: {
   channel: Channel;
   isSelected: boolean;
+  hasDraft: boolean;
+  isStarred: boolean;
   onSelect: () => void;
-  onDelete: () => void;
 }) {
+  const contextPayload = JSON.stringify({
+    channelId: props.channel.id.toString(),
+    isStarred: props.isStarred,
+  });
+
   return (
     <div
       role="button"
       tabIndex={0}
       onClick={props.onSelect}
       onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') props.onSelect(); }}
+      data-context-menu-target="channel"
+      data-context-menu-payload={contextPayload}
       className={clsx(
         'group flex w-full cursor-pointer select-none items-center gap-2 rounded-lg px-2.5 py-1.5 text-left',
         'transition-colors',
@@ -174,17 +242,43 @@ function ChannelItem(props: {
     >
       <IconHash size={16} stroke={2.2} className="shrink-0 opacity-80" />
       <span className="flex-1 truncate text-[13px] font-medium">{props.channel.name}</span>
-      <button
-        type="button"
-        onClick={e => {
-          e.stopPropagation();
-          props.onDelete();
-        }}
-        className="invisible cursor-pointer rounded-lg p-1 text-discord-muted transition-colors group-hover:visible hover:bg-discord-hover hover:text-discord-red"
-        title="Delete Channel"
-      >
-        <IconTrash size={14} stroke={2.2} />
-      </button>
+      {props.hasDraft && (
+        <IconPencil size={14} stroke={2.2} className="shrink-0 text-discord-muted" />
+      )}
+    </div>
+  );
+}
+
+function ConfirmDeleteDialog(props: {
+  channel: Channel;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={props.onCancel}>
+      <div className="w-full max-w-[440px] rounded-3xl border border-discord-active bg-discord-sidebar px-6 py-5 shadow-2xl shadow-black/40" onClick={e => e.stopPropagation()}>
+        <h2 className="select-none text-xl font-semibold text-discord-text">Delete Channel</h2>
+        <p className="mt-3 text-sm leading-relaxed text-discord-muted">
+          Are you sure you want to delete <span className="font-semibold text-discord-text">#{props.channel.name}</span>?
+          All messages and threads in this channel will be permanently removed. This cannot be undone.
+        </p>
+        <div className="mt-5 flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={props.onCancel}
+            className="cursor-pointer select-none rounded-xl px-4 py-2 text-sm text-discord-text transition-colors hover:bg-discord-hover"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={props.onConfirm}
+            className="cursor-pointer select-none rounded-xl bg-discord-red px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-discord-red/80"
+          >
+            Delete Channel
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -15,6 +15,8 @@ import {
   IconMessageCirclePlus,
   IconMoodSmile,
   IconPencil,
+  IconStar,
+  IconStarFilled,
   IconTrash,
 } from '@tabler/icons-react';
 import {
@@ -24,10 +26,10 @@ import {
 } from './store';
 import { openEmojiPicker } from '../emojiPicker/store';
 
-function dispatchAction(action: string, messageId: string) {
+function dispatchAction(action: string, id: string) {
   document.dispatchEvent(
     new CustomEvent('context-menu-action', {
-      detail: { action, messageId },
+      detail: { action, messageId: id, channelId: id },
     }),
   );
   closeContextMenu();
@@ -77,10 +79,72 @@ function GlobalContextMenu() {
     }
   }, [isOpen, position, refs, update]);
 
-  if (!isOpen || !target || target.type !== 'message') return null;
+  if (!isOpen || !target) return null;
 
-  const isOwn = Boolean(target.data.isOwn);
-  const messageId = String(target.data.messageId);
+  let content: React.ReactNode = null;
+
+  if (target.type === 'message') {
+    const isOwn = Boolean(target.data.isOwn);
+    const messageId = String(target.data.messageId);
+
+    content = (
+      <>
+        <ContextMenuItem
+          label="Add Reaction"
+          icon={<IconMoodSmile size={16} stroke={2} />}
+          onClick={() => {
+            const pos = position ?? { x: 0, y: 0 };
+            closeContextMenu();
+            openEmojiPicker(messageId, pos);
+          }}
+        />
+        <ContextMenuItem
+          label="Reply in Thread"
+          icon={<IconMessageCirclePlus size={16} stroke={2} />}
+          onClick={() => dispatchAction('reply', messageId)}
+        />
+        {isOwn && (
+          <>
+            <ContextMenuItem
+              label="Edit Message"
+              icon={<IconPencil size={16} stroke={2} />}
+              onClick={() => dispatchAction('edit', messageId)}
+            />
+            <ContextMenuItem
+              label="Delete Message"
+              icon={<IconTrash size={16} stroke={2} />}
+              onClick={() => dispatchAction('delete', messageId)}
+              danger
+            />
+          </>
+        )}
+      </>
+    );
+  } else if (target.type === 'channel') {
+    const channelId = String(target.data.channelId);
+    const isStarred = Boolean(target.data.isStarred);
+
+    content = (
+      <>
+        <ContextMenuItem
+          label={isStarred ? 'Remove from Starred' : 'Move to Starred'}
+          icon={isStarred
+            ? <IconStarFilled size={16} stroke={2} className="text-discord-yellow" />
+            : <IconStar size={16} stroke={2} />
+          }
+          onClick={() => dispatchAction('toggle-star', channelId)}
+        />
+        <ContextMenuItem
+          label="Delete Channel"
+          icon={<IconTrash size={16} stroke={2} />}
+          onClick={() => dispatchAction('delete-channel', channelId)}
+          danger
+        />
+      </>
+    );
+  } else {
+    return null;
+  }
 
   return (
     <FloatingPortal>
@@ -91,35 +155,7 @@ function GlobalContextMenu() {
         className="z-[9999]"
       >
         <div className="min-w-[180px] select-none rounded-xl border border-discord-active/80 bg-discord-sidebar p-1 shadow-xl shadow-black/40">
-          <ContextMenuItem
-            label="Add Reaction"
-            icon={<IconMoodSmile size={16} stroke={2} />}
-            onClick={() => {
-              const pos = position ?? { x: 0, y: 0 };
-              closeContextMenu();
-              openEmojiPicker(messageId, pos);
-            }}
-          />
-          <ContextMenuItem
-            label="Reply in Thread"
-            icon={<IconMessageCirclePlus size={16} stroke={2} />}
-            onClick={() => dispatchAction('reply', messageId)}
-          />
-          {isOwn && (
-            <>
-              <ContextMenuItem
-                label="Edit Message"
-                icon={<IconPencil size={16} stroke={2} />}
-                onClick={() => dispatchAction('edit', messageId)}
-              />
-              <ContextMenuItem
-                label="Delete Message"
-                icon={<IconTrash size={16} stroke={2} />}
-                onClick={() => dispatchAction('delete', messageId)}
-                danger
-              />
-            </>
-          )}
+          {content}
         </div>
       </div>
     </FloatingPortal>
