@@ -4,6 +4,7 @@ import { IconHash, IconMessageCircle2, IconX } from '@tabler/icons-react';
 import type { Thread, Message, User, Reaction } from '../module_bindings/types';
 import { MessageBubble } from './MessageBubble';
 import { MessageInput, type MessageInputHandle } from './MessageInput';
+import { MarkdownRenderer } from './MarkdownRenderer';
 
 interface ThreadPanelProps {
   thread: Thread;
@@ -76,7 +77,9 @@ export function ThreadPanel(props: ThreadPanelProps) {
             <IconMessageCircle2 size={16} className="shrink-0 text-discord-brand" />
             <span className="truncate">Thread</span>
           </div>
-          <div className="truncate text-xs text-discord-muted">{props.thread.name}</div>
+          <div className="truncate text-xs text-discord-muted [&_.markdown-body]:text-xs [&_.markdown-body]:leading-tight [&_.markdown-body]:text-discord-muted">
+            <MarkdownRenderer content={props.thread.name} />
+          </div>
         </div>
         <button
           onClick={props.onClose}

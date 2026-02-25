@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useAuth } from 'react-oidc-context';
 import { useDiscord } from './hooks/useDiscord';
 import { useResizablePanel } from './hooks/useResizablePanel';
 import { ServerSidebar } from './components/ServerSidebar';
@@ -12,6 +13,7 @@ import { GlobalContextMenuProvider } from './components/contextMenu/GlobalContex
 import { GlobalEmojiPicker } from './components/emojiPicker/EmojiPicker';
 
 function App() {
+  const auth = useAuth();
   const discord = useDiscord();
   const [showProfile, setShowProfile] = useState(false);
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
@@ -133,6 +135,7 @@ function App() {
             onToggleStar={(id) => discord.handleToggleStar(id)}
             getUserDisplayName={discord.getUserDisplayName}
             onEditProfile={() => setShowProfile(true)}
+            onSignOut={() => auth.signoutRedirect()}
           />
           <ResizeHandle isDragging={sidebar.isDragging} onMouseDown={sidebar.handleMouseDown} side="right" />
         </div>
@@ -221,6 +224,7 @@ function App() {
           getUserDisplayName={discord.getUserDisplayName}
           onSetName={(name) => discord.setName({ username: name })}
           onClose={() => setShowProfile(false)}
+          onSignOut={() => auth.signoutRedirect()}
         />
       )}
     </div>

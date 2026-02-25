@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { IconCookie } from '@tabler/icons-react';
+import { IconCookie, IconLogout } from '@tabler/icons-react';
 import type { User } from '../module_bindings/types';
 import { Dialog, DialogFooter } from './Dialog';
 
@@ -8,6 +8,7 @@ interface ProfileModalProps {
   getUserDisplayName: (user: User) => string;
   onSetName: (name: string) => void;
   onClose: () => void;
+  onSignOut: () => void;
 }
 
 export function ProfileModal(props: ProfileModalProps) {
@@ -65,6 +66,17 @@ export function ProfileModal(props: ProfileModalProps) {
         </div>
         <DialogFooter onCancel={props.onClose} submitLabel="Save" />
       </form>
+
+      <div className="border-t border-discord-active/60 pt-4">
+        <button
+          type="button"
+          onClick={props.onSignOut}
+          className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-discord-red transition-colors hover:bg-discord-red/10"
+        >
+          <IconLogout size={16} stroke={2.1} />
+          Sign Out
+        </button>
+      </div>
     </Dialog>
   );
 }

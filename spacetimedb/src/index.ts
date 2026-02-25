@@ -431,6 +431,14 @@ export const moduleInit = spacetimedb.init((ctx) => {
 });
 
 export const onConnect = spacetimedb.clientConnected((ctx) => {
+  const jwt = ctx.senderAuth.jwt;
+  if (!jwt) {
+    throw new SenderError('Authentication required');
+  }
+  if (jwt.issuer !== 'https://auth.spacetimedb.com/oidc') {
+    throw new SenderError('Invalid authentication provider');
+  }
+
   const u = ctx.db.user.identity.find(ctx.sender);
   if (u) {
     ctx.db.user.identity.update({ ...u, online: true });

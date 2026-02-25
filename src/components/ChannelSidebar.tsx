@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import clsx from 'clsx';
 import {
   IconHash,
+  IconLogout,
   IconPencil,
   IconPlus,
   IconSettings,
@@ -21,6 +22,7 @@ interface ChannelSidebarProps {
   onToggleStar: (id: bigint) => void;
   getUserDisplayName: (user: User) => string;
   onEditProfile: () => void;
+  onSignOut: () => void;
 }
 
 export function ChannelSidebar(props: ChannelSidebarProps) {
@@ -142,6 +144,13 @@ export function ChannelSidebar(props: ChannelSidebarProps) {
               title="User Settings"
             >
               <IconSettings size={18} stroke={2.1} />
+            </button>
+            <button
+              onClick={props.onSignOut}
+              className="shrink-0 cursor-pointer select-none rounded-xl p-1.5 text-discord-muted transition-colors hover:bg-discord-hover hover:text-discord-red"
+              title="Sign Out"
+            >
+              <IconLogout size={18} stroke={2.1} />
             </button>
           </>
         )}

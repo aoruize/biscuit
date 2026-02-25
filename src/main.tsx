@@ -1,37 +1,27 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
-import App from './App.tsx';
-import { Identity } from 'spacetimedb';
-import { SpacetimeDBProvider } from 'spacetimedb/react';
-import { DbConnection, ErrorContext } from './module_bindings/index.ts';
+import { AuthProvider } from 'react-oidc-context';
+import { AuthGate } from './components/AuthGate';
 
-const HOST = import.meta.env.VITE_SPACETIMEDB_HOST ?? 'ws://localhost:3000';
-const DB_NAME = import.meta.env.VITE_SPACETIMEDB_DB_NAME ?? 'biscuitdb';
-const TOKEN_KEY = `${HOST}/${DB_NAME}/auth_token`;
-
-const onConnect = (_conn: DbConnection, _identity: Identity, token: string) => {
-  localStorage.setItem(TOKEN_KEY, token);
+const oidcConfig = {
+  authority: 'https://auth.spacetimedb.com/oidc',
+  client_id: import.meta.env.VITE_SPACETIMEAUTH_CLIENT_ID,
+  redirect_uri: window.location.origin,
+  post_logout_redirect_uri: window.location.origin,
+  scope: 'openid profile email',
+  response_type: 'code',
+  automaticSilentRenew: true,
 };
 
-const onDisconnect = () => {};
-
-const onConnectError = (_ctx: ErrorContext, err: Error) => {
-  console.error('SpacetimeDB connection error:', err);
-};
-
-const connectionBuilder = DbConnection.builder()
-  .withUri(HOST)
-  .withDatabaseName(DB_NAME)
-  .withToken(localStorage.getItem(TOKEN_KEY) || undefined)
-  .onConnect(onConnect)
-  .onDisconnect(onDisconnect)
-  .onConnectError(onConnectError);
+function onSigninCallback() {
+  window.history.replaceState({}, document.title, window.location.pathname);
+}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <SpacetimeDBProvider connectionBuilder={connectionBuilder}>
-      <App />
-    </SpacetimeDBProvider>
+    <AuthProvider {...oidcConfig} onSigninCallback={onSigninCallback}>
+      <AuthGate />
+    </AuthProvider>
   </StrictMode>
 );
