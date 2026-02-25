@@ -281,7 +281,7 @@ export function MessageBubble(props: MessageBubbleProps) {
                   icon={<IconPencil size={17} stroke={2.1} />}
                 />
               </Tooltip>
-              <Tooltip content={<span className="flex items-center gap-1.5">Delete<ShortcutBadge>⌫</ShortcutBadge></span>}>
+              <Tooltip content={<span className="flex items-center gap-1.5">Delete<ShortcutBadge>Del</ShortcutBadge></span>}>
                 <ActionButton
                   onClick={props.onDelete}
                   danger

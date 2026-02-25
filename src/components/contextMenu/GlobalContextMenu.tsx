@@ -116,7 +116,7 @@ function GlobalContextMenu() {
             <ContextMenuItem
               label="Delete Message"
               icon={<IconTrash size={16} stroke={2} />}
-              shortcut="⌫"
+              shortcut="Del"
               onClick={() => dispatchAction('delete', messageId)}
               danger
             />
@@ -183,8 +183,8 @@ function ContextMenuItem(props: {
           : 'text-discord-text hover:bg-discord-brand/15 hover:text-discord-brand',
       )}
     >
-      {props.icon}
-      <span className="flex-1">{props.label}</span>
+      <span className="flex w-4 shrink-0 items-center justify-center">{props.icon}</span>
+      <span className="flex-1 text-left">{props.label}</span>
       {props.shortcut && (
         <kbd className="rounded bg-discord-active/60 px-1.5 py-0.5 font-mono text-[10px] text-discord-muted">
           {props.shortcut}
