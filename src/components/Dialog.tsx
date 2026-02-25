@@ -36,7 +36,7 @@ export function Dialog(props: DialogProps) {
           props.maxWidth ?? 'max-w-[460px]'
         )}
       >
-        <h2 className="select-none text-xl font-semibold text-discord-text">
+        <h2 className="select-none font-heading text-xl font-semibold tracking-tight text-discord-text">
           {props.title}
         </h2>
         {props.children}

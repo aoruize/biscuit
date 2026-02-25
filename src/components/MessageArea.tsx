@@ -91,7 +91,7 @@ export function MessageArea(props: MessageAreaProps) {
         <div className="rounded-xl bg-discord-sidebar p-2 text-discord-brand">
           <IconHash size={18} stroke={2.2} />
         </div>
-        <span className="text-lg font-semibold text-discord-text">{props.channel.name}</span>
+        <span className="font-heading text-lg font-semibold text-discord-text">{props.channel.name}</span>
         {props.channel.topic && (
           <>
             <div className="mx-2 h-6 w-px bg-discord-active/80" />
@@ -105,7 +105,7 @@ export function MessageArea(props: MessageAreaProps) {
         className="flex flex-1 flex-col overflow-y-auto px-4 py-4"
       >
         <div className="mb-5 rounded-xl border border-discord-active/40 bg-discord-sidebar/60 px-4 py-3">
-          <div className="mb-1.5 select-none text-2xl font-semibold leading-tight text-discord-text">Welcome to #{props.channel.name}</div>
+          <div className="mb-1.5 select-none font-heading text-2xl font-semibold leading-tight tracking-tight text-discord-text">Welcome to #{props.channel.name}</div>
           <p className="max-w-2xl select-none text-base leading-relaxed text-discord-muted">
             This is the start of the #{props.channel.name} channel.
             {props.channel.topic && ` ${props.channel.topic}`}

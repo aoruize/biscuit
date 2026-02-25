@@ -1,6 +1,8 @@
 @import "tailwindcss";
 
 @theme {
+  --font-heading: 'Space Grotesk', 'Plus Jakarta Sans', sans-serif;
+
   --color-discord-dark: #14110f;
   --color-discord-darker: #0f0c0a;
   --color-discord-sidebar: #241d19;
@@ -36,6 +38,10 @@
     font-family: 'Plus Jakarta Sans', 'Inter', 'Noto Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
     background: radial-gradient(circle at top right, #2d2218 0%, #14110f 42%, #0f0c0a 100%);
     color: var(--color-discord-text);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Space Grotesk', 'Plus Jakarta Sans', sans-serif;
   }
 }
 
@@ -78,18 +84,23 @@
 }
 
 .tiptap-editor h1 {
+  font-family: 'Space Grotesk', 'Plus Jakarta Sans', sans-serif;
   font-size: 1.25rem;
   font-weight: 700;
   margin: 8px 0 4px;
+  letter-spacing: -0.01em;
 }
 
 .tiptap-editor h2 {
+  font-family: 'Space Grotesk', 'Plus Jakarta Sans', sans-serif;
   font-size: 1.125rem;
   font-weight: 700;
   margin: 6px 0 3px;
+  letter-spacing: -0.01em;
 }
 
 .tiptap-editor h3 {
+  font-family: 'Space Grotesk', 'Plus Jakarta Sans', sans-serif;
   font-size: 1rem;
   font-weight: 600;
   margin: 4px 0 2px;

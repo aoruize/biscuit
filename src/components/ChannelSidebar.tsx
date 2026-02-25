@@ -62,7 +62,7 @@ export function ChannelSidebar(props: ChannelSidebarProps) {
   return (
     <div className="flex h-full w-full flex-col bg-discord-sidebar/90">
       <div className="flex h-12 items-center px-3">
-        <div className="w-full select-none rounded-xl border border-discord-active/60 bg-discord-chat/80 px-3 py-2 text-sm font-semibold text-discord-text shadow-sm">
+        <div className="w-full select-none rounded-xl border border-discord-active/60 bg-discord-chat/80 px-3 py-2 font-heading text-sm font-semibold text-discord-text shadow-sm">
           Biscuit HQ
         </div>
       </div>
@@ -150,7 +150,7 @@ export function ChannelSidebar(props: ChannelSidebarProps) {
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setShowCreateModal(false)}>
           <div className="w-full max-w-[460px] rounded-3xl border border-discord-active bg-discord-sidebar px-6 py-5 shadow-2xl shadow-black/40" onClick={e => e.stopPropagation()}>
-            <h2 className="select-none text-2xl font-semibold text-discord-text">Create a new room</h2>
+            <h2 className="select-none font-heading text-2xl font-semibold tracking-tight text-discord-text">Create a new room</h2>
             <form onSubmit={handleCreateChannel} className="mt-5 flex flex-col gap-5">
               <div className="flex flex-col gap-2">
                 <label className="select-none text-xs font-bold uppercase tracking-[0.16em] text-discord-muted">
@@ -257,7 +257,7 @@ function ConfirmDeleteDialog(props: {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={props.onCancel}>
       <div className="w-full max-w-[440px] rounded-3xl border border-discord-active bg-discord-sidebar px-6 py-5 shadow-2xl shadow-black/40" onClick={e => e.stopPropagation()}>
-        <h2 className="select-none text-xl font-semibold text-discord-text">Delete Channel</h2>
+        <h2 className="select-none font-heading text-xl font-semibold tracking-tight text-discord-text">Delete Channel</h2>
         <p className="mt-3 text-sm leading-relaxed text-discord-muted">
           Are you sure you want to delete <span className="font-semibold text-discord-text">#{props.channel.name}</span>?
           All messages and threads in this channel will be permanently removed. This cannot be undone.
