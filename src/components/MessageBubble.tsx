@@ -9,6 +9,8 @@ import {
 import type { Message, User, Thread, Reaction } from '../module_bindings/types';
 import { openEmojiPicker } from './emojiPicker/store';
 import { Tooltip } from './Tooltip';
+import { MarkdownRenderer } from './MarkdownRenderer';
+import { RichTextEditor, type RichTextEditorHandle } from './RichTextEditor';
 
 interface ReactionGroup {
   emoji: string;
@@ -36,9 +38,9 @@ interface MessageBubbleProps {
 
 export function MessageBubble(props: MessageBubbleProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [editText, setEditText] = useState(props.message.text);
   const [showActions, setShowActions] = useState(false);
   const editContainerRef = useRef<HTMLDivElement>(null);
+  const editEditorRef = useRef<RichTextEditorHandle>(null);
 
   const callbacksRef = useRef(props);
   callbacksRef.current = props;
@@ -57,7 +59,6 @@ export function MessageBubble(props: MessageBubbleProps) {
       if (detail.messageId !== callbacksRef.current.message.id.toString()) return;
       if (detail.action === 'edit') {
         setIsEditing(true);
-        setEditText(callbacksRef.current.message.text);
       } else if (detail.action === 'delete') {
         callbacksRef.current.onDelete();
       } else if (detail.action === 'reply') {
@@ -81,18 +82,11 @@ export function MessageBubble(props: MessageBubbleProps) {
 
   const reactionGroups = groupReactions(props.reactions, props.myIdentityHex);
 
-  function handleEditSubmit(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      if (editText.trim() && editText.trim() !== props.message.text) {
-        props.onEdit(editText.trim());
-      }
-      setIsEditing(false);
+  function handleEditSave(markdown: string) {
+    if (markdown.trim() && markdown.trim() !== props.message.text) {
+      props.onEdit(markdown.trim());
     }
-    if (e.key === 'Escape') {
-      setIsEditing(false);
-      setEditText(props.message.text);
-    }
+    setIsEditing(false);
   }
 
   function handleEmojiButtonClick(e: React.MouseEvent<HTMLButtonElement>) {
@@ -181,23 +175,24 @@ export function MessageBubble(props: MessageBubbleProps) {
         {props.threadAnnotation}
 
         {isEditing ? (
-          <div ref={editContainerRef} className="mt-1 rounded-xl border border-discord-active/70 bg-discord-input p-2.5">
-            <textarea
+          <div ref={editContainerRef} className="mt-1">
+            <RichTextEditor
+              ref={editEditorRef}
+              placeholder="Edit message..."
+              initialContent={props.message.text}
+              onSend={handleEditSave}
+              onEscape={() => setIsEditing(false)}
               autoFocus
-              className="w-full resize-none border-none bg-transparent text-discord-text outline-none"
-              value={editText}
-              onChange={e => setEditText(e.target.value)}
-              onKeyDown={handleEditSubmit}
-              rows={Math.min(editText.split('\n').length, 8)}
+              compact
             />
             <div className="mt-1 select-none text-xs text-discord-muted">
-              escape to <button className="cursor-pointer text-discord-link hover:underline" onClick={() => { setIsEditing(false); setEditText(props.message.text); }}>cancel</button>
-              {' '}&bull; enter to <button className="cursor-pointer text-discord-link hover:underline" onClick={() => { props.onEdit(editText.trim()); setIsEditing(false); }}>save</button>
+              escape to <button className="cursor-pointer text-discord-link hover:underline" onClick={() => setIsEditing(false)}>cancel</button>
+              {' '}&bull; enter to <button className="cursor-pointer text-discord-link hover:underline" onClick={() => { const md = editEditorRef.current?.getMarkdown() ?? ''; handleEditSave(md); }}>save</button>
             </div>
           </div>
         ) : (
-          <div className="text-[15px] leading-[1.5rem] text-discord-text">
-            <span className="whitespace-pre-wrap break-words">{props.message.text}</span>
+          <div>
+            <MarkdownRenderer content={props.message.text} />
             {props.message.edited && (
               <span className="ml-1 select-none text-[10px] text-discord-muted">(edited)</span>
             )}
@@ -280,7 +275,7 @@ export function MessageBubble(props: MessageBubbleProps) {
             <>
               <Tooltip content="Edit">
                 <ActionButton
-                  onClick={() => { setIsEditing(true); setEditText(props.message.text); }}
+                  onClick={() => setIsEditing(true)}
                   icon={<IconPencil size={17} stroke={2.1} />}
                 />
               </Tooltip>

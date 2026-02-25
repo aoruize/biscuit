@@ -55,3 +55,114 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #745844;
 }
+
+.tiptap-editor {
+  min-height: 1.5rem;
+  max-height: 300px;
+  overflow-y: auto;
+  font-size: 15px;
+  line-height: 1.5rem;
+  color: var(--color-discord-text);
+}
+
+.tiptap-editor p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: var(--color-discord-muted);
+}
+
+.tiptap-editor p {
+  margin: 2px 0;
+}
+
+.tiptap-editor h1 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 8px 0 4px;
+}
+
+.tiptap-editor h2 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin: 6px 0 3px;
+}
+
+.tiptap-editor h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 4px 0 2px;
+}
+
+.tiptap-editor ul {
+  list-style: disc;
+  padding-left: 1.5rem;
+  margin: 4px 0;
+}
+
+.tiptap-editor ol {
+  list-style: decimal;
+  padding-left: 1.5rem;
+  margin: 4px 0;
+}
+
+.tiptap-editor ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0;
+}
+
+.tiptap-editor ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.tiptap-editor ul[data-type="taskList"] li label input[type="checkbox"] {
+  margin-top: 4px;
+  accent-color: var(--color-discord-brand);
+}
+
+.tiptap-editor blockquote {
+  border-left: 3px solid color-mix(in srgb, var(--color-discord-muted) 50%, transparent);
+  padding-left: 12px;
+  color: var(--color-discord-muted);
+  margin: 4px 0;
+}
+
+.tiptap-editor code {
+  background: color-mix(in srgb, var(--color-discord-sidebar) 80%, transparent);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 13px;
+  color: var(--color-discord-brand);
+}
+
+.tiptap-editor pre {
+  background: color-mix(in srgb, var(--color-discord-darker) 80%, transparent);
+  border-radius: 8px;
+  padding: 12px;
+  margin: 6px 0;
+  overflow-x: auto;
+}
+
+.tiptap-editor pre code {
+  background: none;
+  padding: 0;
+  color: var(--color-discord-text);
+  font-size: 13px;
+}
+
+.tiptap-editor a {
+  color: var(--color-discord-link);
+}
+
+.tiptap-editor a:hover {
+  text-decoration: underline;
+}
+
+.tiptap-editor hr {
+  border: none;
+  border-top: 1px solid color-mix(in srgb, var(--color-discord-active) 60%, transparent);
+  margin: 8px 0;
+}
