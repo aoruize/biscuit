@@ -26,6 +26,7 @@ interface MessageBubbleProps {
   reactions: readonly Reaction[];
   myIdentityHex: string | null;
   threadAnnotation?: React.ReactNode;
+  compact?: boolean;
   onEdit: (text: string) => void;
   onDelete: () => void;
   onCreateThread: () => void;
@@ -139,8 +140,9 @@ export function MessageBubble(props: MessageBubbleProps) {
   return (
     <div
       className={clsx(
-        'group relative flex gap-4 rounded-xl px-2 py-1.5',
+        'group relative flex rounded-xl px-2 py-1.5',
         'transition-colors hover:bg-discord-hover/25',
+        props.compact ? 'gap-2.5' : 'gap-4',
         props.showHeader ? 'mt-4' : 'mt-0'
       )}
       onMouseEnter={() => setShowActions(true)}
@@ -150,13 +152,16 @@ export function MessageBubble(props: MessageBubbleProps) {
     >
       {props.showHeader ? (
         <div
-          className="mt-0.5 flex h-10 w-10 shrink-0 select-none items-center justify-center rounded-xl text-sm font-semibold text-discord-darker"
+          className={clsx(
+            'mt-0.5 flex shrink-0 select-none items-center justify-center rounded-xl font-semibold text-discord-darker',
+            props.compact ? 'h-8 w-8 text-xs' : 'h-10 w-10 text-sm'
+          )}
           style={{ backgroundColor: avatarColor }}
         >
           {displayName.charAt(0).toUpperCase()}
         </div>
       ) : (
-        <div className="flex w-10 shrink-0 items-start justify-center">
+        <div className={clsx('flex shrink-0 items-start justify-center', props.compact ? 'w-8' : 'w-10')}>
           <span className="invisible pt-1 text-[10px] text-discord-muted group-hover:visible">
             {sentDate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: false })}
           </span>

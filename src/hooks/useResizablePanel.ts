@@ -3,7 +3,9 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 interface UseResizablePanelOptions {
   defaultWidth: number;
   minWidth: number;
-  maxWidth: number;
+  maxWidth: number | (() => number);
+  persistKey?: string;
+  direction?: 'right' | 'left';
 }
 
 interface UseResizablePanelReturn {
@@ -12,8 +14,29 @@ interface UseResizablePanelReturn {
   handleMouseDown: (e: React.MouseEvent) => void;
 }
 
+function resolveMax(maxWidth: number | (() => number)): number {
+  return typeof maxWidth === 'function' ? maxWidth() : maxWidth;
+}
+
+function loadPersistedWidth(key: string, fallback: number, min: number, max: number): number {
+  try {
+    const stored = localStorage.getItem(key);
+    if (stored !== null) {
+      const parsed = Number(stored);
+      if (!Number.isNaN(parsed)) return Math.min(max, Math.max(min, parsed));
+    }
+  } catch { /* noop */ }
+  return fallback;
+}
+
 export function useResizablePanel(options: UseResizablePanelOptions): UseResizablePanelReturn {
-  const [width, setWidth] = useState(options.defaultWidth);
+  const { defaultWidth, minWidth, maxWidth, persistKey, direction = 'right' } = options;
+  const maxWidthRef = useRef(maxWidth);
+  maxWidthRef.current = maxWidth;
+
+  const [width, setWidth] = useState(() =>
+    persistKey ? loadPersistedWidth(persistKey, defaultWidth, minWidth, resolveMax(maxWidth)) : defaultWidth
+  );
   const [isDragging, setIsDragging] = useState(false);
   const startXRef = useRef(0);
   const startWidthRef = useRef(0);
@@ -28,9 +51,12 @@ export function useResizablePanel(options: UseResizablePanelOptions): UseResizab
   useEffect(() => {
     if (!isDragging) return;
 
+    const sign = direction === 'right' ? 1 : -1;
+
     function handleMouseMove(e: MouseEvent) {
-      const delta = e.clientX - startXRef.current;
-      const newWidth = Math.min(options.maxWidth, Math.max(options.minWidth, startWidthRef.current + delta));
+      const currentMax = resolveMax(maxWidthRef.current);
+      const delta = (e.clientX - startXRef.current) * sign;
+      const newWidth = Math.min(currentMax, Math.max(minWidth, startWidthRef.current + delta));
       setWidth(newWidth);
     }
 
@@ -49,7 +75,13 @@ export function useResizablePanel(options: UseResizablePanelOptions): UseResizab
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
     };
-  }, [isDragging, options.minWidth, options.maxWidth]);
+  }, [isDragging, minWidth, direction]);
+
+  useEffect(() => {
+    if (persistKey && !isDragging) {
+      localStorage.setItem(persistKey, String(Math.round(width)));
+    }
+  }, [width, isDragging, persistKey]);
 
   return { width, isDragging, handleMouseDown };
 }

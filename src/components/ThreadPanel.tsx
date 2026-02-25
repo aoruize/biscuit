@@ -54,12 +54,12 @@ export function ThreadPanel(props: ThreadPanelProps) {
   }
 
   return (
-    <div className="flex h-full w-[420px] shrink-0 flex-col border-y border-r border-discord-active/60 bg-discord-chat/95">
-      <div className="flex h-14 shrink-0 items-center justify-between border-b border-discord-active/50 px-5">
+    <div className="flex h-full min-w-[280px] flex-1 flex-col border-l border-discord-active/60 bg-discord-chat/95">
+      <div className="flex h-14 shrink-0 items-center justify-between border-b border-discord-active/50 px-3">
         <div className="min-w-0">
-          <div className="flex items-center gap-2 text-sm font-semibold text-discord-text">
-            <IconMessageCircle2 size={16} className="text-discord-brand" />
-            Thread
+          <div className="flex items-center gap-1.5 text-sm font-semibold text-discord-text">
+            <IconMessageCircle2 size={16} className="shrink-0 text-discord-brand" />
+            <span className="truncate">Thread</span>
           </div>
           <div className="truncate text-xs text-discord-muted">{props.thread.name}</div>
         </div>
@@ -71,9 +71,9 @@ export function ThreadPanel(props: ThreadPanelProps) {
         </button>
       </div>
 
-      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-5 py-5">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-3 py-4">
         {props.parentMessage && (
-          <div className="mb-5 rounded-2xl border border-discord-active/60 bg-discord-sidebar/55 p-3">
+          <div className="mb-4 rounded-2xl border border-discord-active/60 bg-discord-sidebar/55 p-2">
             <MessageBubble
               message={props.parentMessage}
               user={props.getUserForMessage(props.parentMessage)}
@@ -83,6 +83,7 @@ export function ThreadPanel(props: ThreadPanelProps) {
               isOwn={props.isOwnMessage(props.parentMessage)}
               myIdentityHex={props.myIdentityHex}
               showHeader
+              compact
               onEdit={(text) => props.onEditMessage(props.parentMessage!.id, text)}
               onDelete={() => props.onDeleteMessage(props.parentMessage!.id)}
               onCreateThread={() => {}}
@@ -133,6 +134,7 @@ export function ThreadPanel(props: ThreadPanelProps) {
                   isOwn={props.isOwnMessage(msg)}
                   myIdentityHex={props.myIdentityHex}
                   showHeader={showHeader}
+                  compact
                   onEdit={(text) => props.onEditMessage(msg.id, text)}
                   onDelete={() => props.onDeleteMessage(msg.id)}
                   onCreateThread={() => {}}
@@ -147,19 +149,19 @@ export function ThreadPanel(props: ThreadPanelProps) {
         <div className="mt-3 pb-1">
           <MessageInput
             ref={replyInputRef}
-            placeholder={`Reply to thread...`}
+            placeholder="Reply to thread..."
             onSend={handleSend}
             onTyping={props.onTyping}
             onStopTyping={props.onStopTyping}
           />
-          <label className="mt-1.5 flex cursor-pointer select-none items-center gap-2 pl-4 text-xs text-discord-muted">
+          <label className="mt-1.5 flex cursor-pointer select-none items-center gap-1.5 pl-3 text-xs text-discord-muted">
             <input
               type="checkbox"
               checked={alsoSendToChannel}
               onChange={e => setAlsoSendToChannel(e.target.checked)}
-              className="h-3.5 w-3.5 cursor-pointer accent-discord-brand"
+              className="h-3.5 w-3.5 shrink-0 cursor-pointer accent-discord-brand"
             />
-            Also send to <span className="font-medium text-discord-text">#{props.channelName}</span>
+            <span className="truncate">Also send to <span className="font-medium text-discord-text">#{props.channelName}</span></span>
           </label>
           <TypingIndicator users={props.typingUsers} getUserDisplayName={props.getUserDisplayName} />
         </div>

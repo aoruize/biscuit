@@ -1,5 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
-import clsx from 'clsx';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useDiscord } from './hooks/useDiscord';
 import { useResizablePanel } from './hooks/useResizablePanel';
 import { ServerSidebar } from './components/ServerSidebar';
@@ -8,6 +7,7 @@ import { MessageArea } from './components/MessageArea';
 import { ThreadPanel } from './components/ThreadPanel';
 import { MemberList } from './components/MemberList';
 import { ProfileModal } from './components/ProfileModal';
+import { ResizeHandle } from './components/ResizeHandle';
 import { GlobalContextMenuProvider } from './components/contextMenu/GlobalContextMenu';
 import { GlobalEmojiPicker } from './components/emojiPicker/EmojiPicker';
 
@@ -26,7 +26,16 @@ function App() {
       pendingThreadMsgRef.current = null;
     }
   }, [discord.threads]);
-  const sidebar = useResizablePanel({ defaultWidth: 256, minWidth: 160, maxWidth: 420 });
+  const contentRef = useRef<HTMLDivElement>(null);
+  const sidebar = useResizablePanel({ defaultWidth: 256, minWidth: 160, maxWidth: 420, persistKey: 'sidebar-width' });
+
+  const THREAD_MIN_WIDTH = 280;
+  const MEMBER_LIST_WIDTH = 224;
+  const getMessageAreaMax = useCallback(
+    () => (contentRef.current?.clientWidth ?? 900) - THREAD_MIN_WIDTH - MEMBER_LIST_WIDTH,
+    []
+  );
+  const messageArea = useResizablePanel({ defaultWidth: 600, minWidth: 300, maxWidth: getMessageAreaMax, persistKey: 'message-area-width' });
 
   function handleSendMessage(text: string) {
     if (discord.selectedChannelId !== null) {
@@ -120,40 +129,40 @@ function App() {
             getUserDisplayName={discord.getUserDisplayName}
             onEditProfile={() => setShowProfile(true)}
           />
-          <div
-            onMouseDown={sidebar.handleMouseDown}
-            className={clsx(
-              'absolute right-0 top-0 z-10 h-full w-1 cursor-col-resize transition-opacity',
-              sidebar.isDragging
-                ? 'bg-discord-brand opacity-100'
-                : 'opacity-0 hover:bg-discord-brand/60 hover:opacity-100'
-            )}
-          />
+          <ResizeHandle isDragging={sidebar.isDragging} onMouseDown={sidebar.handleMouseDown} side="right" />
         </div>
 
-        <div className="flex min-w-0 flex-1">
-          <MessageArea
-            channel={discord.currentChannel}
-            messages={discord.channelMessages}
-            threads={discord.threads}
-            getUserForMessage={discord.getUserForMessage}
-            getUserDisplayName={discord.getUserDisplayName}
-            getThreadForMessage={discord.getThreadForMessage}
-            getReactionsForMessage={discord.getReactionsForMessage}
-            isOwnMessage={discord.isOwnMessage}
-            myIdentityHex={myIdentityHex}
-            highlightedMessageId={highlightedMessageId}
-            typingUsers={discord.selectedChannelId !== null ? discord.getChannelTypingUsers(discord.selectedChannelId, 0n) : []}
-            onSendMessage={handleSendMessage}
-            onEditMessage={(id, text) => discord.editMessage({ messageId: id, text })}
-            onDeleteMessage={(id) => discord.deleteMessage({ messageId: id })}
-            onCreateThread={handleCreateThread}
-            onOpenThread={(id) => discord.setSelectedThreadId(id)}
-            onToggleReaction={discord.handleToggleReaction}
-            onNavigateToThread={handleNavigateToThread}
-            onTyping={handleChannelTyping}
-            onStopTyping={handleStopTyping}
-          />
+        <div ref={contentRef} className="flex min-w-0 flex-1">
+          <div
+            className="relative flex h-full min-w-0 shrink-0"
+            style={discord.selectedThread ? { width: messageArea.width } : { flex: '1 1 0%' }}
+          >
+            <MessageArea
+              channel={discord.currentChannel}
+              messages={discord.channelMessages}
+              threads={discord.threads}
+              getUserForMessage={discord.getUserForMessage}
+              getUserDisplayName={discord.getUserDisplayName}
+              getThreadForMessage={discord.getThreadForMessage}
+              getReactionsForMessage={discord.getReactionsForMessage}
+              isOwnMessage={discord.isOwnMessage}
+              myIdentityHex={myIdentityHex}
+              highlightedMessageId={highlightedMessageId}
+              typingUsers={discord.selectedChannelId !== null ? discord.getChannelTypingUsers(discord.selectedChannelId, 0n) : []}
+              onSendMessage={handleSendMessage}
+              onEditMessage={(id, text) => discord.editMessage({ messageId: id, text })}
+              onDeleteMessage={(id) => discord.deleteMessage({ messageId: id })}
+              onCreateThread={handleCreateThread}
+              onOpenThread={(id) => discord.setSelectedThreadId(id)}
+              onToggleReaction={discord.handleToggleReaction}
+              onNavigateToThread={handleNavigateToThread}
+              onTyping={handleChannelTyping}
+              onStopTyping={handleStopTyping}
+            />
+            {discord.selectedThread && (
+              <ResizeHandle isDragging={messageArea.isDragging} onMouseDown={messageArea.handleMouseDown} side="right" />
+            )}
+          </div>
 
           {discord.selectedThread && (
             <ThreadPanel
