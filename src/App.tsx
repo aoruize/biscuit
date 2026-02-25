@@ -30,9 +30,8 @@ function App() {
   const sidebar = useResizablePanel({ defaultWidth: 256, minWidth: 160, maxWidth: 420, persistKey: 'sidebar-width' });
 
   const THREAD_MIN_WIDTH = 280;
-  const MEMBER_LIST_WIDTH = 224;
   const getMessageAreaMax = useCallback(
-    () => (contentRef.current?.clientWidth ?? 900) - THREAD_MIN_WIDTH - MEMBER_LIST_WIDTH,
+    () => (contentRef.current?.clientWidth ?? 900) - THREAD_MIN_WIDTH,
     []
   );
   const messageArea = useResizablePanel({ defaultWidth: 600, minWidth: 300, maxWidth: getMessageAreaMax, persistKey: 'message-area-width' });
@@ -193,7 +192,7 @@ function App() {
             />
           )}
 
-          {showMembers && (
+          {!discord.selectedThread && showMembers && (
             <MemberList
               onlineUsers={discord.onlineUsers}
               offlineUsers={discord.offlineUsers}
