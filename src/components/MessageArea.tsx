@@ -278,7 +278,7 @@ export function MessageArea(props: MessageAreaProps) {
         })}
       </div>
 
-      <div className="px-4 pb-2">
+      <div className="px-4">
         <MessageInput
           key={props.channel.id.toString()}
           ref={inputRef}

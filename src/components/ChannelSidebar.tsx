@@ -63,7 +63,7 @@ export function ChannelSidebar(props: ChannelSidebarProps) {
 
   return (
     <div className="flex h-full w-full flex-col bg-discord-sidebar/90">
-      <div className="flex h-12 items-center px-3">
+      <div className="flex h-14 items-center px-3">
         <div className="w-full select-none rounded-xl border border-discord-active/60 bg-discord-chat/80 px-3 py-2 font-heading text-sm font-semibold text-discord-text shadow-sm">
           Biscuit HQ
         </div>
@@ -120,7 +120,7 @@ export function ChannelSidebar(props: ChannelSidebarProps) {
         </div>
       </div>
 
-      <div className="m-2 mt-2 flex items-center gap-2 rounded-xl border border-discord-active/60 bg-discord-chat/80 px-2.5 py-2">
+      <div className="m-2 my-4 flex items-center gap-2 rounded-xl border border-discord-active/60 bg-discord-chat/80 px-2.5 py-2">
         {props.currentUser && (
           <>
             <div className="rounded-lg bg-discord-hover/50 p-0.5">
