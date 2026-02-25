@@ -20,6 +20,7 @@ interface ThreadPanelProps {
   onToggleReaction: (messageId: bigint, emoji: string) => void;
   onClose: () => void;
   onTyping: () => void;
+  onStopTyping: () => void;
 }
 
 export function ThreadPanel(props: ThreadPanelProps) {
@@ -111,6 +112,7 @@ export function ThreadPanel(props: ThreadPanelProps) {
             placeholder={`Reply to thread...`}
             onSend={props.onSendReply}
             onTyping={props.onTyping}
+            onStopTyping={props.onStopTyping}
           />
           <TypingIndicator users={props.typingUsers} getUserDisplayName={props.getUserDisplayName} />
         </div>

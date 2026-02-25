@@ -1,5 +1,7 @@
 import { useState } from 'react';
+import clsx from 'clsx';
 import { useDiscord } from './hooks/useDiscord';
+import { useResizablePanel } from './hooks/useResizablePanel';
 import { ServerSidebar } from './components/ServerSidebar';
 import { ChannelSidebar } from './components/ChannelSidebar';
 import { MessageArea } from './components/MessageArea';
@@ -13,6 +15,7 @@ function App() {
   const discord = useDiscord();
   const [showProfile, setShowProfile] = useState(false);
   const showMembers = true;
+  const sidebar = useResizablePanel({ defaultWidth: 256, minWidth: 160, maxWidth: 420 });
 
   function handleSendMessage(text: string) {
     if (discord.selectedChannelId !== null) {
@@ -45,6 +48,10 @@ function App() {
     }
   }
 
+  function handleStopTyping() {
+    discord.handleStopTyping();
+  }
+
   const myIdentityHex = discord.identity?.toHexString() ?? null;
 
   const parentMessage = discord.selectedThread
@@ -68,19 +75,30 @@ function App() {
       <div className="flex h-full w-full overflow-hidden bg-discord-dark/70 shadow-2xl shadow-black/50 backdrop-blur">
         <ServerSidebar serverName="Biscuit" />
 
-        <ChannelSidebar
-          channels={discord.channels}
-          selectedChannelId={discord.selectedChannelId}
-          currentUser={discord.currentUser}
-          onSelectChannel={(id) => {
-            discord.setSelectedChannelId(id);
-            discord.setSelectedThreadId(null);
-          }}
-          onCreateChannel={(name, topic) => discord.createChannel({ name, topic })}
-          onDeleteChannel={(id) => discord.deleteChannel({ channelId: id })}
-          getUserDisplayName={discord.getUserDisplayName}
-          onEditProfile={() => setShowProfile(true)}
-        />
+        <div className="relative flex h-full shrink-0" style={{ width: sidebar.width }}>
+          <ChannelSidebar
+            channels={discord.channels}
+            selectedChannelId={discord.selectedChannelId}
+            currentUser={discord.currentUser}
+            onSelectChannel={(id) => {
+              discord.setSelectedChannelId(id);
+              discord.setSelectedThreadId(null);
+            }}
+            onCreateChannel={(name, topic) => discord.createChannel({ name, topic })}
+            onDeleteChannel={(id) => discord.deleteChannel({ channelId: id })}
+            getUserDisplayName={discord.getUserDisplayName}
+            onEditProfile={() => setShowProfile(true)}
+          />
+          <div
+            onMouseDown={sidebar.handleMouseDown}
+            className={clsx(
+              'absolute right-0 top-0 z-10 h-full w-1 cursor-col-resize transition-opacity',
+              sidebar.isDragging
+                ? 'bg-discord-brand opacity-100'
+                : 'opacity-0 hover:bg-discord-brand/60 hover:opacity-100'
+            )}
+          />
+        </div>
 
         <div className="ml-2 flex min-w-0 flex-1">
           <MessageArea
@@ -100,6 +118,7 @@ function App() {
             onOpenThread={(id) => discord.setSelectedThreadId(id)}
             onToggleReaction={(msgId, emoji) => discord.toggleReaction({ messageId: msgId, emoji })}
             onTyping={handleChannelTyping}
+            onStopTyping={handleStopTyping}
           />
 
           {discord.selectedThread && (
@@ -122,6 +141,7 @@ function App() {
               onToggleReaction={(msgId, emoji) => discord.toggleReaction({ messageId: msgId, emoji })}
               onClose={() => discord.setSelectedThreadId(null)}
               onTyping={handleThreadTyping}
+              onStopTyping={handleStopTyping}
             />
           )}
 

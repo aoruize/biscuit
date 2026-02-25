@@ -102,6 +102,14 @@ export function useDiscord() {
     }, 5000);
   }, [setTyping, clearTyping]);
 
+  const handleStopTyping = useCallback(() => {
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
+    }
+    clearTyping();
+  }, [clearTyping]);
+
   return {
     connected,
     identity,
@@ -130,6 +138,7 @@ export function useDiscord() {
     createThread,
     sendThreadReply,
     handleSendTyping,
+    handleStopTyping,
     clearTyping,
     toggleReaction,
     getChannelTypingUsers,

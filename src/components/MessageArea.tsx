@@ -21,6 +21,7 @@ interface MessageAreaProps {
   onOpenThread: (threadId: bigint) => void;
   onToggleReaction: (messageId: bigint, emoji: string) => void;
   onTyping: () => void;
+  onStopTyping: () => void;
 }
 
 export function MessageArea(props: MessageAreaProps) {
@@ -130,6 +131,7 @@ export function MessageArea(props: MessageAreaProps) {
           placeholder={`Message #${props.channel.name}`}
           onSend={props.onSendMessage}
           onTyping={props.onTyping}
+          onStopTyping={props.onStopTyping}
         />
         <TypingIndicator users={props.typingUsers} getUserDisplayName={props.getUserDisplayName} />
       </div>

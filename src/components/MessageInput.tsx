@@ -5,6 +5,7 @@ interface MessageInputProps {
   placeholder: string;
   onSend: (text: string) => void;
   onTyping: () => void;
+  onStopTyping: () => void;
 }
 
 export interface MessageInputHandle {
@@ -35,6 +36,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         if (text.trim()) {
           props.onSend(text.trim());
           setText('');
+          props.onStopTyping();
           if (textareaRef.current) {
             textareaRef.current.style.height = 'auto';
           }
@@ -43,8 +45,13 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
     }
 
     function handleChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
-      setText(e.target.value);
-      props.onTyping();
+      const value = e.target.value;
+      setText(value);
+      if (value.length > 0) {
+        props.onTyping();
+      } else {
+        props.onStopTyping();
+      }
       adjustHeight();
     }
 
