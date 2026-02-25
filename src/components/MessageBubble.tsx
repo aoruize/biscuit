@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, forwardRef } from 'react';
 import clsx from 'clsx';
 import {
   IconMessageCirclePlus,
@@ -8,6 +8,7 @@ import {
 } from '@tabler/icons-react';
 import type { Message, User, Thread, Reaction } from '../module_bindings/types';
 import { openEmojiPicker } from './emojiPicker/store';
+import { Tooltip } from './Tooltip';
 
 interface ReactionGroup {
   emoji: string;
@@ -36,7 +37,6 @@ export function MessageBubble(props: MessageBubbleProps) {
   const [editText, setEditText] = useState(props.message.text);
   const [showActions, setShowActions] = useState(false);
   const editContainerRef = useRef<HTMLDivElement>(null);
-  const emojiButtonRef = useRef<HTMLButtonElement>(null);
 
   const callbacksRef = useRef(props);
   callbacksRef.current = props;
@@ -93,9 +93,8 @@ export function MessageBubble(props: MessageBubbleProps) {
     }
   }
 
-  function handleEmojiButtonClick() {
-    const rect = emojiButtonRef.current?.getBoundingClientRect();
-    if (!rect) return;
+  function handleEmojiButtonClick(e: React.MouseEvent<HTMLButtonElement>) {
+    const rect = e.currentTarget.getBoundingClientRect();
     openEmojiPicker(props.message.id.toString(), { x: rect.left, y: rect.bottom + 4 });
   }
 
@@ -198,7 +197,7 @@ export function MessageBubble(props: MessageBubbleProps) {
         )}
 
         {reactionGroups.length > 0 && (
-          <div className="mt-1.5 flex flex-wrap gap-1">
+          <div className="mt-1.5 flex flex-wrap items-center gap-1">
             {reactionGroups.map(rg => (
               <button
                 key={rg.emoji}
@@ -214,6 +213,14 @@ export function MessageBubble(props: MessageBubbleProps) {
                 <span className="font-medium">{rg.count}</span>
               </button>
             ))}
+            <Tooltip content="Add reaction...">
+              <button
+                onClick={handleEmojiButtonClick}
+                className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border border-discord-active/70 bg-discord-hover/30 text-discord-muted transition-colors hover:border-discord-active hover:text-discord-text"
+              >
+                <IconMoodSmile size={14} stroke={2} />
+              </button>
+            </Tooltip>
           </div>
         )}
 
@@ -243,36 +250,39 @@ export function MessageBubble(props: MessageBubbleProps) {
 
       {showActions && !isEditing && (
         <div className="absolute -top-4 right-2 flex rounded-xl border border-discord-active/80 bg-discord-sidebar p-0.5 shadow-xl shadow-black/30">
-          <ActionButton
-            ref={emojiButtonRef}
-            title="Add Reaction"
-            onClick={handleEmojiButtonClick}
-            icon={<IconMoodSmile size={17} stroke={2.1} />}
-          />
-          <ActionButton
-            title={props.thread ? 'Reply to Thread' : 'Reply'}
-            onClick={() => {
-              if (props.thread) {
-                props.onOpenThread(props.thread.id);
-              } else {
-                props.onCreateThread();
-              }
-            }}
-            icon={<IconMessageCirclePlus size={17} stroke={2.1} />}
-          />
+          <Tooltip content="Add reaction...">
+            <ActionButton
+              onClick={handleEmojiButtonClick}
+              icon={<IconMoodSmile size={17} stroke={2.1} />}
+            />
+          </Tooltip>
+          <Tooltip content={props.thread ? 'Reply to thread' : 'Reply'}>
+            <ActionButton
+              onClick={() => {
+                if (props.thread) {
+                  props.onOpenThread(props.thread.id);
+                } else {
+                  props.onCreateThread();
+                }
+              }}
+              icon={<IconMessageCirclePlus size={17} stroke={2.1} />}
+            />
+          </Tooltip>
           {props.isOwn && (
             <>
-              <ActionButton
-                title="Edit"
-                onClick={() => { setIsEditing(true); setEditText(props.message.text); }}
-                icon={<IconPencil size={17} stroke={2.1} />}
-              />
-              <ActionButton
-                title="Delete"
-                onClick={props.onDelete}
-                danger
-                icon={<IconTrash size={17} stroke={2.1} />}
-              />
+              <Tooltip content="Edit">
+                <ActionButton
+                  onClick={() => { setIsEditing(true); setEditText(props.message.text); }}
+                  icon={<IconPencil size={17} stroke={2.1} />}
+                />
+              </Tooltip>
+              <Tooltip content="Delete">
+                <ActionButton
+                  onClick={props.onDelete}
+                  danger
+                  icon={<IconTrash size={17} stroke={2.1} />}
+                />
+              </Tooltip>
             </>
           )}
         </div>
@@ -281,18 +291,14 @@ export function MessageBubble(props: MessageBubbleProps) {
   );
 }
 
-import { forwardRef } from 'react';
-
 const ActionButton = forwardRef<HTMLButtonElement, {
-  title: string;
-  onClick: () => void;
+  onClick: React.MouseEventHandler<HTMLButtonElement>;
   icon: React.ReactNode;
   danger?: boolean;
 }>(function ActionButton(props, ref) {
   return (
     <button
       ref={ref}
-      title={props.title}
       onClick={props.onClick}
       className={clsx(
         'cursor-pointer select-none rounded-lg p-1.5 transition-colors',

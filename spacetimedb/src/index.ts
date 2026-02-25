@@ -302,8 +302,8 @@ export const toggle_reaction = spacetimedb.reducer(
     const msg = ctx.db.message.id.find(messageId);
     if (!msg) throw new SenderError('Message not found');
 
-    for (const r of ctx.db.reaction.reaction_message_id.filter(messageId)) {
-      if (r.emoji === emoji && r.reactor.toHexString() === ctx.sender.toHexString()) {
+    for (const r of ctx.db.reaction.iter()) {
+      if (r.messageId === messageId && r.emoji === emoji && r.reactor.toHexString() === ctx.sender.toHexString()) {
         ctx.db.reaction.id.delete(r.id);
         return;
       }

@@ -159,8 +159,11 @@ function ChannelItem(props: {
   onDelete: () => void;
 }) {
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={props.onSelect}
+      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') props.onSelect(); }}
       className={clsx(
         'group flex w-full cursor-pointer select-none items-center gap-2 rounded-lg px-2.5 py-1.5 text-left',
         'transition-colors',
@@ -182,6 +185,6 @@ function ChannelItem(props: {
       >
         <IconTrash size={14} stroke={2.2} />
       </button>
-    </button>
+    </div>
   );
 }

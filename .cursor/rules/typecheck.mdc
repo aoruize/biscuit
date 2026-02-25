@@ -1,0 +1,18 @@
+---
+description: "Run tsc typecheck after substantive code changes to catch import errors and type mismatches before finishing."
+globs: "**/*.ts,**/*.tsx"
+alwaysApply: true
+---
+
+# Typecheck After Changes
+
+After making substantive code changes (new files, changed imports, new/updated props or interfaces, added dependencies), run:
+
+```bash
+bun run typecheck
+```
+
+This runs `tsc --noEmit` against the app config and catches errors that `ReadLints` may miss — especially invalid named imports from barrel re-exports in `node_modules`.
+
+- If it reports errors, fix them before completing the task.
+- Use `ReadLints` for quick inline feedback during edits, and `bun run typecheck` as a final verification before finishing.
