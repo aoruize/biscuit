@@ -5,7 +5,7 @@ import {
   useCallback,
   useEffect,
 } from 'react';
-import { useEditor, EditorContent, type Editor } from '@tiptap/react';
+import { useEditor, useEditorState, EditorContent, type Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
 import TaskList from '@tiptap/extension-task-list';
@@ -104,7 +104,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
         ...(enterToSend.current ? [enterToSend.current] : []),
       ],
       content: props.initialContent ?? '',
-      autofocus: props.autoFocus ?? false,
+      autofocus: props.autoFocus ? 'end' : false,
       editorProps: {
         attributes: {
           class: 'tiptap-editor outline-none',
@@ -268,28 +268,33 @@ const toolbarButtons: ToolbarButtonDef[] = [
 ];
 
 function Toolbar(props: ToolbarProps) {
+  const activeStates = useEditorState({
+    editor: props.editor,
+    selector: (ctx) => {
+      const e = ctx.editor;
+      return toolbarButtons.map((btn) => btn.isActive?.(e) ?? false);
+    },
+  });
+
   return (
     <div className="flex flex-wrap gap-0.5 border-b border-discord-active/40 px-2 py-1">
-      {toolbarButtons.map((btn) => {
-        const active = btn.isActive?.(props.editor) ?? false;
-        return (
-          <Tooltip key={btn.label} content={btn.label}>
-            <button
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => btn.action(props.editor)}
-              className={clsx(
-                'cursor-pointer rounded-md p-1.5 transition-colors',
-                active
-                  ? 'bg-discord-active/60 text-discord-brand'
-                  : 'text-discord-muted hover:bg-discord-hover/50 hover:text-discord-text'
-              )}
-            >
-              {btn.icon}
-            </button>
-          </Tooltip>
-        );
-      })}
+      {toolbarButtons.map((btn, i) => (
+        <Tooltip key={btn.label} content={btn.label}>
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => btn.action(props.editor)}
+            className={clsx(
+              'cursor-pointer rounded-md p-1.5 transition-colors',
+              activeStates[i]
+                ? 'bg-discord-active/60 text-discord-brand'
+                : 'text-discord-muted hover:bg-discord-hover/50 hover:text-discord-text'
+            )}
+          >
+            {btn.icon}
+          </button>
+        </Tooltip>
+      ))}
     </div>
   );
 }
