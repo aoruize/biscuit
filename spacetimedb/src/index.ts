@@ -44,10 +44,12 @@ const message = table(
     id: t.u64().primaryKey().autoInc(),
     channelId: t.u64(),
     threadId: t.u64(),
+    sourceThreadId: t.u64(),
     sender: t.identity(),
     text: t.string(),
     sent: t.timestamp(),
     edited: t.bool(),
+    alsoSentToChannel: t.bool(),
   }
 );
 
@@ -173,10 +175,12 @@ export const send_message = spacetimedb.reducer(
       id: 0n,
       channelId,
       threadId: 0n,
+      sourceThreadId: 0n,
       sender: ctx.sender,
       text: trimmed,
       sent: ctx.timestamp,
       edited: false,
+      alsoSentToChannel: false,
     });
 
     ctx.db.thread.insert({
@@ -269,8 +273,8 @@ export const create_thread = spacetimedb.reducer(
 );
 
 export const send_thread_reply = spacetimedb.reducer(
-  { threadId: t.u64(), text: t.string() },
-  (ctx, { threadId, text }) => {
+  { threadId: t.u64(), text: t.string(), alsoSendToChannel: t.bool() },
+  (ctx, { threadId, text, alsoSendToChannel }) => {
     const trimmed = text.trim();
     if (!trimmed) throw new SenderError('Message must not be empty');
     if (trimmed.length > 2000) throw new SenderError('Message too long');
@@ -282,11 +286,27 @@ export const send_thread_reply = spacetimedb.reducer(
       id: 0n,
       channelId: th.channelId,
       threadId,
+      sourceThreadId: 0n,
       sender: ctx.sender,
       text: trimmed,
       sent: ctx.timestamp,
       edited: false,
+      alsoSentToChannel,
     });
+
+    if (alsoSendToChannel) {
+      ctx.db.message.insert({
+        id: 0n,
+        channelId: th.channelId,
+        threadId: 0n,
+        sourceThreadId: threadId,
+        sender: ctx.sender,
+        text: trimmed,
+        sent: ctx.timestamp,
+        edited: false,
+        alsoSentToChannel: false,
+      });
+    }
 
     ctx.db.thread.id.update({
       ...th,

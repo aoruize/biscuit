@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import clsx from 'clsx';
 import { useDiscord } from './hooks/useDiscord';
 import { useResizablePanel } from './hooks/useResizablePanel';
@@ -14,18 +14,29 @@ import { GlobalEmojiPicker } from './components/emojiPicker/EmojiPicker';
 function App() {
   const discord = useDiscord();
   const [showProfile, setShowProfile] = useState(false);
+  const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
   const showMembers = true;
+  const pendingThreadMsgRef = useRef<bigint | null>(null);
+
+  useEffect(() => {
+    if (pendingThreadMsgRef.current === null) return;
+    const thread = discord.threads.find(t => t.parentMessageId === pendingThreadMsgRef.current);
+    if (thread) {
+      discord.setSelectedThreadId(thread.id);
+      pendingThreadMsgRef.current = null;
+    }
+  }, [discord.threads]);
   const sidebar = useResizablePanel({ defaultWidth: 256, minWidth: 160, maxWidth: 420 });
 
   function handleSendMessage(text: string) {
     if (discord.selectedChannelId !== null) {
-      discord.sendMessage({ channelId: discord.selectedChannelId, text });
+      discord.handleSendMessage(discord.selectedChannelId, text);
     }
   }
 
-  function handleSendThreadReply(text: string) {
+  function handleSendThreadReply(text: string, alsoSendToChannel: boolean) {
     if (discord.selectedThreadId !== null) {
-      discord.sendThreadReply({ threadId: discord.selectedThreadId, text });
+      discord.handleSendThreadReply(discord.selectedThreadId, text, alsoSendToChannel);
     }
   }
 
@@ -33,7 +44,17 @@ function App() {
     const existingThread = discord.getThreadForMessage(messageId);
     if (existingThread) {
       discord.setSelectedThreadId(existingThread.id);
+      return;
     }
+    if (discord.selectedChannelId === null) return;
+    const msg = discord.channelMessages.find(m => m.id === messageId);
+    const threadName = msg ? msg.text.substring(0, 50) : 'Thread';
+    pendingThreadMsgRef.current = messageId;
+    discord.createThread({
+      channelId: discord.selectedChannelId,
+      parentMessageId: messageId,
+      name: threadName,
+    });
   }
 
   function handleChannelTyping() {
@@ -50,6 +71,16 @@ function App() {
 
   function handleStopTyping() {
     discord.handleStopTyping();
+  }
+
+  function highlightMessage(id: string) {
+    setHighlightedMessageId(id);
+    setTimeout(() => setHighlightedMessageId(null), 2000);
+  }
+
+  function handleNavigateToThread(threadId: bigint, messageId: bigint) {
+    discord.setSelectedThreadId(threadId);
+    setTimeout(() => highlightMessage(messageId.toString()), 100);
   }
 
   const myIdentityHex = discord.identity?.toHexString() ?? null;
@@ -100,16 +131,18 @@ function App() {
           />
         </div>
 
-        <div className="ml-2 flex min-w-0 flex-1">
+        <div className="flex min-w-0 flex-1">
           <MessageArea
             channel={discord.currentChannel}
             messages={discord.channelMessages}
+            threads={discord.threads}
             getUserForMessage={discord.getUserForMessage}
             getUserDisplayName={discord.getUserDisplayName}
             getThreadForMessage={discord.getThreadForMessage}
             getReactionsForMessage={discord.getReactionsForMessage}
             isOwnMessage={discord.isOwnMessage}
             myIdentityHex={myIdentityHex}
+            highlightedMessageId={highlightedMessageId}
             typingUsers={discord.selectedChannelId !== null ? discord.getChannelTypingUsers(discord.selectedChannelId, 0n) : []}
             onSendMessage={handleSendMessage}
             onEditMessage={(id, text) => discord.editMessage({ messageId: id, text })}
@@ -117,6 +150,7 @@ function App() {
             onCreateThread={handleCreateThread}
             onOpenThread={(id) => discord.setSelectedThreadId(id)}
             onToggleReaction={discord.handleToggleReaction}
+            onNavigateToThread={handleNavigateToThread}
             onTyping={handleChannelTyping}
             onStopTyping={handleStopTyping}
           />
@@ -124,6 +158,7 @@ function App() {
           {discord.selectedThread && (
             <ThreadPanel
               thread={discord.selectedThread}
+              channelName={discord.currentChannel?.name ?? ''}
               parentMessage={parentMessage}
               messages={discord.threadMessages}
               getUserForMessage={discord.getUserForMessage}
@@ -131,6 +166,7 @@ function App() {
               getReactionsForMessage={discord.getReactionsForMessage}
               isOwnMessage={discord.isOwnMessage}
               myIdentityHex={myIdentityHex}
+              highlightedMessageId={highlightedMessageId}
               typingUsers={discord.selectedChannelId !== null && discord.selectedThreadId !== null
                 ? discord.getChannelTypingUsers(discord.selectedChannelId, discord.selectedThreadId)
                 : []
@@ -140,6 +176,9 @@ function App() {
               onDeleteMessage={(id) => discord.deleteMessage({ messageId: id })}
               onToggleReaction={discord.handleToggleReaction}
               onClose={() => discord.setSelectedThreadId(null)}
+              onNavigateToChannelMessage={(msgId) => {
+                highlightMessage(msgId.toString());
+              }}
               onTyping={handleThreadTyping}
               onStopTyping={handleStopTyping}
             />

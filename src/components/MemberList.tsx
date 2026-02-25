@@ -10,7 +10,7 @@ interface MemberListProps {
 
 export function MemberList(props: MemberListProps) {
   return (
-    <div className="ml-2 flex h-full w-56 shrink-0 flex-col border border-discord-active/60 bg-discord-sidebar/90">
+    <div className="flex h-full w-56 shrink-0 flex-col border-y border-r border-discord-active/60 bg-discord-sidebar/90">
       <div className="flex select-none items-center gap-2 border-b border-discord-active/50 px-3 py-2.5">
         <IconUsers size={16} className="text-discord-brand" />
         <div className="text-base font-semibold text-discord-text">People</div>

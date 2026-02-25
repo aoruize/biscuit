@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
+import clsx from 'clsx';
 import { IconHash } from '@tabler/icons-react';
 import type { Channel, Message, User, Thread, Reaction } from '../module_bindings/types';
 import { MessageBubble } from './MessageBubble';
@@ -7,12 +8,14 @@ import { MessageInput, type MessageInputHandle } from './MessageInput';
 interface MessageAreaProps {
   channel: Channel | null;
   messages: readonly Message[];
+  threads: readonly Thread[];
   getUserForMessage: (msg: Message) => User | undefined;
   getUserDisplayName: (user: User) => string;
   getThreadForMessage: (msgId: bigint) => Thread | undefined;
   getReactionsForMessage: (msgId: bigint) => Reaction[];
   isOwnMessage: (msg: Message) => boolean;
   myIdentityHex: string | null;
+  highlightedMessageId: string | null;
   typingUsers: readonly User[];
   onSendMessage: (text: string) => void;
   onEditMessage: (id: bigint, text: string) => void;
@@ -20,6 +23,7 @@ interface MessageAreaProps {
   onCreateThread: (messageId: bigint) => void;
   onOpenThread: (threadId: bigint) => void;
   onToggleReaction: (messageId: bigint, emoji: string) => void;
+  onNavigateToThread: (threadId: bigint, messageId: bigint) => void;
   onTyping: () => void;
   onStopTyping: () => void;
 }
@@ -59,6 +63,14 @@ export function MessageArea(props: MessageAreaProps) {
     }
     prevMsgCountRef.current = count;
   }, [props.messages.length, scrollToBottom]);
+
+  useEffect(() => {
+    if (!props.highlightedMessageId || !containerRef.current) return;
+    const el = containerRef.current.querySelector(
+      `[data-message-id="${props.highlightedMessageId}"]`
+    );
+    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [props.highlightedMessageId]);
 
   if (!props.channel) {
     return (
@@ -104,23 +116,49 @@ export function MessageArea(props: MessageAreaProps) {
             || prev.sender.toHexString() !== msg.sender.toHexString()
             || (msg.sent.toDate().getTime() - prev.sent.toDate().getTime()) > 5 * 60 * 1000;
 
+          const sourceThreadId = (msg as Record<string, unknown>).sourceThreadId as bigint | undefined;
+          const isFromThread = sourceThreadId !== undefined && sourceThreadId !== 0n;
+          const sourceThread = isFromThread
+            ? props.threads.find(t => t.id === sourceThreadId)
+            : undefined;
+          const isHighlighted = props.highlightedMessageId === msg.id.toString();
+
           return (
-            <MessageBubble
-              key={msg.id.toString()}
-              message={msg}
-              user={props.getUserForMessage(msg)}
-              getUserDisplayName={props.getUserDisplayName}
-              thread={props.getThreadForMessage(msg.id)}
-              reactions={props.getReactionsForMessage(msg.id)}
-              isOwn={props.isOwnMessage(msg)}
-              myIdentityHex={props.myIdentityHex}
-              showHeader={showHeader}
-              onEdit={(text) => props.onEditMessage(msg.id, text)}
-              onDelete={() => props.onDeleteMessage(msg.id)}
-              onCreateThread={() => props.onCreateThread(msg.id)}
-              onOpenThread={props.onOpenThread}
-              onToggleReaction={(emoji) => props.onToggleReaction(msg.id, emoji)}
-            />
+            <div key={msg.id.toString()} data-message-id={msg.id.toString()}>
+              {isFromThread && showHeader && sourceThread && (
+                <div className="ml-14 mt-4 mb-0.5 flex select-none items-center gap-1 text-xs text-discord-muted">
+                  <span>replied to a thread:</span>
+                  <button
+                    onClick={() => props.onNavigateToThread(sourceThread.id, msg.id)}
+                    className="cursor-pointer truncate font-medium text-discord-link transition-colors hover:underline"
+                  >
+                    {sourceThread.name}
+                  </button>
+                </div>
+              )}
+              <div
+                className={clsx(
+                  'rounded-lg transition-colors duration-700',
+                  isHighlighted && 'bg-discord-brand/10'
+                )}
+              >
+                <MessageBubble
+                  message={msg}
+                  user={props.getUserForMessage(msg)}
+                  getUserDisplayName={props.getUserDisplayName}
+                  thread={props.getThreadForMessage(msg.id)}
+                  reactions={props.getReactionsForMessage(msg.id)}
+                  isOwn={props.isOwnMessage(msg)}
+                  myIdentityHex={props.myIdentityHex}
+                  showHeader={showHeader}
+                  onEdit={(text) => props.onEditMessage(msg.id, text)}
+                  onDelete={() => props.onDeleteMessage(msg.id)}
+                  onCreateThread={() => props.onCreateThread(msg.id)}
+                  onOpenThread={props.onOpenThread}
+                  onToggleReaction={(emoji) => props.onToggleReaction(msg.id, emoji)}
+                />
+              </div>
+            </div>
           );
         })}
       </div>

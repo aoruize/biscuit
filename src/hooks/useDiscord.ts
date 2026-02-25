@@ -10,6 +10,17 @@ interface OptimisticToggle {
   action: 'add' | 'remove';
 }
 
+interface OptimisticMessage {
+  tempId: bigint;
+  channelId: bigint;
+  threadId: bigint;
+  sourceThreadId: bigint;
+  senderHex: string;
+  text: string;
+  createdAt: number;
+  alsoSentToChannel: boolean;
+}
+
 export function useDiscord() {
   const { identity, isActive: connected } = useSpacetimeDB();
 
@@ -37,6 +48,8 @@ export function useDiscord() {
   const [selectedThreadId, setSelectedThreadId] = useState<bigint | null>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [optimisticToggles, setOptimisticToggles] = useState<OptimisticToggle[]>([]);
+  const [optimisticMessages, setOptimisticMessages] = useState<OptimisticMessage[]>([]);
+  const tempIdCounter = useRef(BigInt(Number.MAX_SAFE_INTEGER));
 
   useEffect(() => {
     setOptimisticToggles(prev => {
@@ -53,23 +66,66 @@ export function useDiscord() {
     });
   }, [reactions]);
 
+  useEffect(() => {
+    setOptimisticMessages(prev => {
+      if (prev.length === 0) return prev;
+      const matched = new Set<bigint>();
+      const next = prev.filter(opt => {
+        const match = allMessages.find(m =>
+          !matched.has(m.id) &&
+          m.channelId === opt.channelId &&
+          m.threadId === opt.threadId &&
+          m.text === opt.text &&
+          m.sender.toHexString() === opt.senderHex
+        );
+        if (match) {
+          matched.add(match.id);
+          return false;
+        }
+        return true;
+      });
+      return next.length < prev.length ? next : prev;
+    });
+  }, [allMessages]);
+
   const currentChannel = selectedChannelId !== null
     ? channels.find(c => c.id === selectedChannelId) ?? null
     : channels[0] ?? null;
 
   const activeChannelId = currentChannel?.id ?? null;
 
-  const channelMessages = allMessages.filter(
-    m => m.channelId === activeChannelId && m.threadId === 0n
-  ).sort((a, b) => (a.sent.toDate() > b.sent.toDate() ? 1 : -1));
+  function toDisplayMessage(opt: OptimisticMessage): Message {
+    return {
+      id: opt.tempId,
+      channelId: opt.channelId,
+      threadId: opt.threadId,
+      sourceThreadId: opt.sourceThreadId,
+      sender: identity!,
+      text: opt.text,
+      sent: { toDate: () => new Date(opt.createdAt), microsSinceUnixEpoch: BigInt(opt.createdAt) * 1000n },
+      edited: false,
+      alsoSentToChannel: opt.alsoSentToChannel,
+    } as unknown as Message;
+  }
+
+  const channelMessages = [
+    ...allMessages.filter(m => m.channelId === activeChannelId && m.threadId === 0n),
+    ...optimisticMessages
+      .filter(o => o.channelId === activeChannelId && o.threadId === 0n)
+      .map(toDisplayMessage),
+  ].sort((a, b) => (a.sent.toDate() > b.sent.toDate() ? 1 : -1));
 
   const selectedThread = selectedThreadId !== null
     ? threads.find(t => t.id === selectedThreadId) ?? null
     : null;
 
   const threadMessages = selectedThreadId !== null
-    ? allMessages.filter(m => m.threadId === selectedThreadId)
-        .sort((a, b) => (a.sent.toDate() > b.sent.toDate() ? 1 : -1))
+    ? [
+        ...allMessages.filter(m => m.threadId === selectedThreadId),
+        ...optimisticMessages
+          .filter(o => o.threadId === selectedThreadId)
+          .map(toDisplayMessage),
+      ].sort((a, b) => (a.sent.toDate() > b.sent.toDate() ? 1 : -1))
     : [];
 
   const channelThreads = activeChannelId !== null
@@ -152,6 +208,67 @@ export function useDiscord() {
     toggleReaction({ messageId, emoji });
   }
 
+  function handleSendMessage(channelId: bigint, text: string) {
+    if (!identity) return;
+    const trimmed = text.trim();
+    if (!trimmed) return;
+
+    tempIdCounter.current += 1n;
+    setOptimisticMessages(prev => [...prev, {
+      tempId: tempIdCounter.current,
+      channelId,
+      threadId: 0n,
+      sourceThreadId: 0n,
+      senderHex: identity.toHexString(),
+      text: trimmed,
+      createdAt: Date.now(),
+      alsoSentToChannel: false,
+    }]);
+
+    sendMessage({ channelId, text: trimmed });
+  }
+
+  function handleSendThreadReply(threadId: bigint, text: string, alsoSendToChannel: boolean = false) {
+    if (!identity) return;
+    const trimmed = text.trim();
+    if (!trimmed) return;
+
+    const th = threads.find(t => t.id === threadId);
+    if (!th) return;
+    const identityHex = identity.toHexString();
+
+    tempIdCounter.current += 1n;
+    const optimistic: OptimisticMessage[] = [{
+      tempId: tempIdCounter.current,
+      channelId: th.channelId,
+      threadId,
+      sourceThreadId: 0n,
+      senderHex: identityHex,
+      text: trimmed,
+      createdAt: Date.now(),
+      alsoSentToChannel: alsoSendToChannel,
+    }];
+
+    if (alsoSendToChannel) {
+      tempIdCounter.current += 1n;
+      optimistic.push({
+        tempId: tempIdCounter.current,
+        channelId: th.channelId,
+        threadId: 0n,
+        sourceThreadId: threadId,
+        senderHex: identityHex,
+        text: trimmed,
+        createdAt: Date.now(),
+        alsoSentToChannel: false,
+      });
+    }
+
+    setOptimisticMessages(prev => [...prev, ...optimistic]);
+    (sendThreadReply as (args: { threadId: bigint; text: string; alsoSendToChannel: boolean }) => void)({
+      threadId, text: trimmed, alsoSendToChannel,
+    });
+  }
+
   function isOwnMessage(msg: Message): boolean {
     if (!identity) return false;
     return msg.sender.toHexString() === identity.toHexString();
@@ -195,11 +312,11 @@ export function useDiscord() {
     createChannel,
     deleteChannel,
     updateChannelTopic,
-    sendMessage,
+    handleSendMessage,
     editMessage,
     deleteMessage,
     createThread,
-    sendThreadReply,
+    handleSendThreadReply,
     handleSendTyping,
     handleStopTyping,
     clearTyping,

@@ -157,7 +157,7 @@ export function MessageBubble(props: MessageBubbleProps) {
       ) : (
         <div className="flex w-10 shrink-0 items-start justify-center">
           <span className="invisible pt-1 text-[10px] text-discord-muted group-hover:visible">
-            {formatTime(sentDate)}
+            {sentDate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: false })}
           </span>
         </div>
       )}
