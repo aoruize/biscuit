@@ -73,9 +73,11 @@ export function ThreadPanel(props: ThreadPanelProps) {
           </div>
         )}
 
-        <div className="mb-3 text-xs font-semibold text-discord-muted">
-          {props.thread.replyCount.toString()} {props.thread.replyCount === 1n ? 'reply' : 'replies'}
-        </div>
+        {props.thread.replyCount > 0n && (
+          <div className="mb-3 text-xs font-semibold text-discord-muted">
+            {props.thread.replyCount.toString()} {props.thread.replyCount === 1n ? 'reply' : 'replies'}
+          </div>
+        )}
 
         {props.messages.map((msg, idx) => {
           const prev = idx > 0 ? props.messages[idx - 1] : null;
@@ -102,17 +104,17 @@ export function ThreadPanel(props: ThreadPanelProps) {
             />
           );
         })}
-        <div ref={messagesEndRef} />
-      </div>
 
-      <div className="px-5 pb-5">
-        <MessageInput
-          ref={replyInputRef}
-          placeholder={`Reply to thread...`}
-          onSend={props.onSendReply}
-          onTyping={props.onTyping}
-        />
-        <TypingIndicator users={props.typingUsers} getUserDisplayName={props.getUserDisplayName} />
+        <div className="mt-3 pb-1">
+          <MessageInput
+            ref={replyInputRef}
+            placeholder={`Reply to thread...`}
+            onSend={props.onSendReply}
+            onTyping={props.onTyping}
+          />
+          <TypingIndicator users={props.typingUsers} getUserDisplayName={props.getUserDisplayName} />
+        </div>
+        <div ref={messagesEndRef} />
       </div>
     </div>
   );

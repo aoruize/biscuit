@@ -169,7 +169,7 @@ export const send_message = spacetimedb.reducer(
     const ch = ctx.db.channel.id.find(channelId);
     if (!ch) throw new SenderError('Channel not found');
 
-    ctx.db.message.insert({
+    const row = ctx.db.message.insert({
       id: 0n,
       channelId,
       threadId: 0n,
@@ -177,6 +177,17 @@ export const send_message = spacetimedb.reducer(
       text: trimmed,
       sent: ctx.timestamp,
       edited: false,
+    });
+
+    ctx.db.thread.insert({
+      id: 0n,
+      channelId,
+      parentMessageId: row.id,
+      name: trimmed.substring(0, 50),
+      createdBy: ctx.sender,
+      createdAt: ctx.timestamp,
+      lastActivity: ctx.timestamp,
+      replyCount: 0n,
     });
 
     const existing = ctx.db.typing_indicator.identity.find(ctx.sender);
@@ -208,6 +219,27 @@ export const delete_message = spacetimedb.reducer(
     if (msg.sender.toHexString() !== ctx.sender.toHexString()) {
       throw new SenderError('Can only delete your own messages');
     }
+
+    if (msg.threadId === 0n) {
+      for (const th of ctx.db.thread.iter()) {
+        if (th.parentMessageId === messageId) {
+          for (const reply of ctx.db.message.iter()) {
+            if (reply.threadId === th.id) {
+              for (const r of ctx.db.reaction.iter()) {
+                if (r.messageId === reply.id) ctx.db.reaction.id.delete(r.id);
+              }
+              ctx.db.message.id.delete(reply.id);
+            }
+          }
+          ctx.db.thread.id.delete(th.id);
+        }
+      }
+    }
+
+    for (const r of ctx.db.reaction.iter()) {
+      if (r.messageId === messageId) ctx.db.reaction.id.delete(r.id);
+    }
+
     ctx.db.message.id.delete(messageId);
   }
 );

@@ -10,7 +10,7 @@ import {
   useInteractions,
   useRole,
 } from '@floating-ui/react';
-import { EMOJI_CATEGORIES } from './emojis';
+import { EMOJI_CATEGORIES, EMOJI_ALIASES } from './emojis';
 import { useEmojiPickerStore, closeEmojiPicker } from './store';
 
 function dispatchReaction(messageId: string, emoji: string) {
@@ -80,7 +80,10 @@ export function GlobalEmojiPicker() {
   const filteredCategories = query
     ? EMOJI_CATEGORIES.map(cat => ({
         ...cat,
-        emojis: cat.emojis.filter(e => e.includes(query)),
+        emojis: cat.emojis.filter(e => {
+          const aliases = EMOJI_ALIASES[e.emoji];
+          return aliases?.some(kw => kw.includes(query)) ?? false;
+        }),
       })).filter(cat => cat.emojis.length > 0)
     : EMOJI_CATEGORIES;
 
@@ -141,13 +144,14 @@ export function GlobalEmojiPicker() {
                   {cat.name}
                 </div>
                 <div className="grid grid-cols-8 gap-0.5">
-                  {cat.emojis.map((emoji) => (
+                  {cat.emojis.map((entry) => (
                     <button
-                      key={`${cat.name}-${emoji}`}
-                      onClick={() => dispatchReaction(messageId, emoji)}
+                      key={`${cat.name}-${entry.emoji}`}
+                      onClick={() => dispatchReaction(messageId, entry.emoji)}
+                      title={entry.keywords[0]}
                       className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-xl transition-transform hover:scale-125 hover:bg-discord-hover"
                     >
-                      {emoji}
+                      {entry.emoji}
                     </button>
                   ))}
                 </div>

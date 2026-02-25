@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { useDiscord } from './hooks/useDiscord';
 import { ServerSidebar } from './components/ServerSidebar';
 import { ChannelSidebar } from './components/ChannelSidebar';
@@ -13,16 +13,6 @@ function App() {
   const discord = useDiscord();
   const [showProfile, setShowProfile] = useState(false);
   const showMembers = true;
-  const pendingThreadMsgRef = useRef<bigint | null>(null);
-
-  useEffect(() => {
-    if (pendingThreadMsgRef.current === null) return;
-    const thread = discord.threads.find(t => t.parentMessageId === pendingThreadMsgRef.current);
-    if (thread) {
-      discord.setSelectedThreadId(thread.id);
-      pendingThreadMsgRef.current = null;
-    }
-  }, [discord.threads]);
 
   function handleSendMessage(text: string) {
     if (discord.selectedChannelId !== null) {
@@ -37,20 +27,10 @@ function App() {
   }
 
   function handleCreateThread(messageId: bigint) {
-    if (discord.selectedChannelId === null) return;
     const existingThread = discord.getThreadForMessage(messageId);
     if (existingThread) {
       discord.setSelectedThreadId(existingThread.id);
-      return;
     }
-    const msg = discord.channelMessages.find(m => m.id === messageId);
-    const threadName = msg ? msg.text.substring(0, 50) : 'Thread';
-    pendingThreadMsgRef.current = messageId;
-    discord.createThread({
-      channelId: discord.selectedChannelId,
-      parentMessageId: messageId,
-      name: threadName,
-    });
   }
 
   function handleChannelTyping() {

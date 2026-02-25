@@ -224,7 +224,7 @@ export function MessageBubble(props: MessageBubbleProps) {
           </div>
         )}
 
-        {props.thread && (
+        {props.thread && props.thread.replyCount > 0n && (
           <button
             onClick={() => props.onOpenThread(props.thread!.id)}
             className="group/thread mt-2 flex w-full cursor-pointer select-none items-center gap-2 rounded-lg px-1 py-1 text-[13px] transition-colors hover:bg-discord-hover/40"
@@ -256,7 +256,7 @@ export function MessageBubble(props: MessageBubbleProps) {
               icon={<IconMoodSmile size={17} stroke={2.1} />}
             />
           </Tooltip>
-          <Tooltip content={props.thread ? 'Reply to thread' : 'Reply'}>
+          <Tooltip content="Reply">
             <ActionButton
               onClick={() => {
                 if (props.thread) {
