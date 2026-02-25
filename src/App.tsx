@@ -158,8 +158,8 @@ function App() {
               highlightedMessageId={highlightedMessageId}
               typingUsers={discord.selectedChannelId !== null ? discord.getChannelTypingUsers(discord.selectedChannelId, 0n) : []}
               onSendMessage={handleSendMessage}
-              onEditMessage={(id, text) => discord.editMessage({ messageId: id, text })}
-              onDeleteMessage={(id) => discord.deleteMessage({ messageId: id })}
+              onEditMessage={(id, text) => discord.handleEditMessage(id, text)}
+              onDeleteMessage={(id) => discord.handleDeleteMessage(id)}
               onCreateThread={handleCreateThread}
               onOpenThread={(id) => { discord.setSelectedThreadId(id); setThreadFocusKey(k => k + 1); }}
               onToggleReaction={discord.handleToggleReaction}
@@ -196,8 +196,8 @@ function App() {
                 : []
               }
               onSendReply={handleSendThreadReply}
-              onEditMessage={(id, text) => discord.editMessage({ messageId: id, text })}
-              onDeleteMessage={(id) => discord.deleteMessage({ messageId: id })}
+              onEditMessage={(id, text) => discord.handleEditMessage(id, text)}
+              onDeleteMessage={(id) => discord.handleDeleteMessage(id)}
               onToggleReaction={discord.handleToggleReaction}
               onClose={() => discord.setSelectedThreadId(null)}
               onNavigateToChannelMessage={(msgId) => {
