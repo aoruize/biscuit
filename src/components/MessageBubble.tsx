@@ -25,6 +25,7 @@ interface MessageBubbleProps {
   showHeader: boolean;
   reactions: readonly Reaction[];
   myIdentityHex: string | null;
+  threadAnnotation?: React.ReactNode;
   onEdit: (text: string) => void;
   onDelete: () => void;
   onCreateThread: () => void;
@@ -171,6 +172,8 @@ export function MessageBubble(props: MessageBubbleProps) {
             <span className="text-xs text-discord-muted">{formatFullDate(sentDate)}</span>
           </div>
         )}
+
+        {props.threadAnnotation}
 
         {isEditing ? (
           <div ref={editContainerRef} className="mt-1 rounded-xl border border-discord-active/70 bg-discord-input p-2.5">

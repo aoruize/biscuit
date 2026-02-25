@@ -55,7 +55,7 @@ export function ThreadPanel(props: ThreadPanelProps) {
 
   return (
     <div className="flex h-full w-[420px] shrink-0 flex-col border-y border-r border-discord-active/60 bg-discord-chat/95">
-      <div className="flex h-16 items-center justify-between border-b border-discord-active/50 px-5">
+      <div className="flex h-14 shrink-0 items-center justify-between border-b border-discord-active/50 px-5">
         <div className="min-w-0">
           <div className="flex items-center gap-2 text-sm font-semibold text-discord-text">
             <IconMessageCircle2 size={16} className="text-discord-brand" />
@@ -152,7 +152,7 @@ export function ThreadPanel(props: ThreadPanelProps) {
             onTyping={props.onTyping}
             onStopTyping={props.onStopTyping}
           />
-          <label className="mt-1.5 flex cursor-pointer select-none items-center gap-2 text-xs text-discord-muted">
+          <label className="mt-1.5 flex cursor-pointer select-none items-center gap-2 pl-4 text-xs text-discord-muted">
             <input
               type="checkbox"
               checked={alsoSendToChannel}

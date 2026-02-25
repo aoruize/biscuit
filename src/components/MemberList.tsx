@@ -11,7 +11,7 @@ interface MemberListProps {
 export function MemberList(props: MemberListProps) {
   return (
     <div className="flex h-full w-56 shrink-0 flex-col border-y border-r border-discord-active/60 bg-discord-sidebar/90">
-      <div className="flex select-none items-center gap-2 border-b border-discord-active/50 px-3 py-2.5">
+      <div className="flex h-14 shrink-0 select-none items-center gap-2 border-b border-discord-active/50 px-3">
         <IconUsers size={16} className="text-discord-brand" />
         <div className="text-base font-semibold text-discord-text">People</div>
       </div>

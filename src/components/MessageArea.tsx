@@ -85,7 +85,7 @@ export function MessageArea(props: MessageAreaProps) {
 
   return (
     <div className="flex flex-1 flex-col border border-discord-active/50 bg-discord-chat/95">
-      <div className="flex min-h-14 select-none items-center gap-2 border-b border-discord-active/50 px-4 py-2">
+      <div className="flex h-14 shrink-0 select-none items-center gap-2 border-b border-discord-active/50 px-4">
         <div className="rounded-xl bg-discord-sidebar p-2 text-discord-brand">
           <IconHash size={18} stroke={2.2} />
         </div>
@@ -123,19 +123,20 @@ export function MessageArea(props: MessageAreaProps) {
             : undefined;
           const isHighlighted = props.highlightedMessageId === msg.id.toString();
 
+          const annotation = isFromThread && showHeader && sourceThread ? (
+            <div className="mb-0.5 flex select-none items-center gap-1 text-xs text-discord-muted">
+              <span>replied to a thread:</span>
+              <button
+                onClick={() => props.onNavigateToThread(sourceThread.id, msg.id)}
+                className="cursor-pointer truncate font-medium text-discord-link transition-colors hover:underline"
+              >
+                {sourceThread.name}
+              </button>
+            </div>
+          ) : undefined;
+
           return (
             <div key={msg.id.toString()} data-message-id={msg.id.toString()}>
-              {isFromThread && showHeader && sourceThread && (
-                <div className="ml-14 mt-4 mb-0.5 flex select-none items-center gap-1 text-xs text-discord-muted">
-                  <span>replied to a thread:</span>
-                  <button
-                    onClick={() => props.onNavigateToThread(sourceThread.id, msg.id)}
-                    className="cursor-pointer truncate font-medium text-discord-link transition-colors hover:underline"
-                  >
-                    {sourceThread.name}
-                  </button>
-                </div>
-              )}
               <div
                 className={clsx(
                   'rounded-lg transition-colors duration-700',
@@ -151,11 +152,12 @@ export function MessageArea(props: MessageAreaProps) {
                   isOwn={props.isOwnMessage(msg)}
                   myIdentityHex={props.myIdentityHex}
                   showHeader={showHeader}
-                  onEdit={(text) => props.onEditMessage(msg.id, text)}
+                  threadAnnotation={annotation}
+                  onEdit={(text: string) => props.onEditMessage(msg.id, text)}
                   onDelete={() => props.onDeleteMessage(msg.id)}
                   onCreateThread={() => props.onCreateThread(msg.id)}
                   onOpenThread={props.onOpenThread}
-                  onToggleReaction={(emoji) => props.onToggleReaction(msg.id, emoji)}
+                  onToggleReaction={(emoji: string) => props.onToggleReaction(msg.id, emoji)}
                 />
               </div>
             </div>
@@ -178,7 +180,7 @@ export function MessageArea(props: MessageAreaProps) {
 }
 
 function TypingIndicator(props: { users: readonly User[]; getUserDisplayName: (u: User) => string }) {
-  if (props.users.length === 0) return <div className="h-5" />;
+  if (props.users.length === 0) return <div className="h-4" />;
 
   const names = props.users.map(u => props.getUserDisplayName(u));
   let text: string;
